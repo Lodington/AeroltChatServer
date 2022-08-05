@@ -83,7 +83,7 @@ namespace AeroltChatServer
                 {
                     var escapeBullshit = e.Data.Replace("<noparse>", "").Replace("</noparse>", "");
                     var cleaned = $"<noparse>{FilterText(escapeBullshit)}</noparse>";
-                    LinkRegex.Replace(cleaned, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
+                    cleaned = LinkRegex.Replace(cleaned, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
                     Sessions.Broadcast(cleaned);
                 }
             }
