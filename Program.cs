@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 
@@ -13,11 +15,27 @@ namespace AeroltChatServer
 // State object for reading client data asynchronously  
     class Server
     {
+        private static IMongoCollection<BsonDocument> bannedUsers;
+
         // add array to store current users
         private partial class UserList
         {
             public static Dictionary<IPEndPoint, string> UsernameMap = new Dictionary<IPEndPoint, string>();
             public static Dictionary<IPEndPoint, WebSocket> EndpointMap = new Dictionary<IPEndPoint, WebSocket>();
+
+            public static void CleanDeadUsers()
+            {
+                foreach (var endPoint in from pair in UserList.EndpointMap
+                    let endpoint = pair.Key
+                    let socket = pair.Value
+                    where !socket.IsAlive
+                    select endpoint) RemoveUser(endPoint);
+            }
+            public static void RemoveUser(IPEndPoint x)
+            {
+                UsernameMap.Remove(x);
+                EndpointMap.Remove(x);
+            }
         }
 
         private class Connect : WebSocketBehavior
@@ -39,7 +57,7 @@ namespace AeroltChatServer
 
         private class Usernames : WebSocketBehavior
         {
-            
+
             protected override void OnMessage(MessageEventArgs e)
             {
                 var usernameCensored = FilterText(e.Data);
@@ -50,14 +68,8 @@ namespace AeroltChatServer
 
             protected override void OnClose(CloseEventArgs e)
             {
-                foreach (var endPoint in from pair in UserList.EndpointMap let endpoint = pair.Key let socket = pair.Value where !socket.IsAlive select endpoint) RemoveUser(endPoint);
+                UserList.CleanDeadUsers();
                 Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
-            }
-
-            public static void RemoveUser(IPEndPoint x)
-            {
-                UserList.UsernameMap.Remove(x);
-                UserList.EndpointMap.Remove(x);
             }
         }
 
@@ -66,7 +78,7 @@ namespace AeroltChatServer
             protected override void OnMessage(MessageEventArgs e)
             {
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data + " disconnected");
-                foreach (var endPoint in from pair in UserList.EndpointMap let endpoint = pair.Key let socket = pair.Value where !socket.IsAlive select endpoint) Usernames.RemoveUser(endPoint);
+                UserList.CleanDeadUsers();
                 Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
             }
         }
@@ -85,7 +97,7 @@ namespace AeroltChatServer
         private class SendMessage : WebSocketBehavior
         {
             public static Regex LinkRegex = new Regex(@"(#\d+)");
-            
+
             protected override void OnMessage(MessageEventArgs e)
             {
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
@@ -93,7 +105,9 @@ namespace AeroltChatServer
                 {
                     var escapeBullshit = e.Data.Replace("<noparse>", "").Replace("</noparse>", "");
                     var cleaned = $"<noparse>{FilterText(escapeBullshit)}</noparse>";
-                    cleaned = LinkRegex.Replace(cleaned, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
+                    cleaned = LinkRegex.Replace(cleaned,
+                        match =>
+                            $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
                     Sessions.Broadcast(cleaned);
                 }
             }
@@ -105,12 +119,20 @@ namespace AeroltChatServer
             var censored = censor.CensorText(textToFilter);
             return censored;
         }
-        
+
+        public static bool IsBanned(IPEndPoint endpoint) => bannedUsers.Find(new BsonDocument("ip", endpoint.ToString())).Any();
+        public static void Ban(IPEndPoint endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
+
         private static void RunServer()
         {
             var ip = IPAddress.Any;
             var port = 5000;
-            
+
+            var connectionString = File.ReadAllText("../../mongoconnectionstring.txt");
+            var client = new MongoClient(connectionString);
+            var db = client.GetDatabase("AeroltChatServer");
+            bannedUsers = db.GetCollection<BsonDocument>("BannedUsers");
+
             var server = new WebSocketServer($"ws://{ip}:{port}");
             server.AddWebSocketService<SendMessage>("/Message");
             server.AddWebSocketService<Usernames>("/Usernames");
