@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Text.RegularExpressions;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 
@@ -73,24 +74,17 @@ namespace AeroltChatServer
 
         private class SendMessage : WebSocketBehavior
         {
+            public static Regex LinkRegex = new Regex(@"(#\d+)");
             
             protected override void OnMessage(MessageEventArgs e)
             {
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
                 if (e.Data != null)
                 {
-                    if (e.Data.Contains("#"))
-                    {
-                        string[] SplitMsg = e.Data.Split('#');
-                       
-                        string joinLobbyLink =  string.Format("<#7f7fe5><u><link=\"{0}\">{1}</link></u></color>", SplitMsg[1], $"{SplitMsg[0]} Join My Lobby!");
-                        Sessions.Broadcast(joinLobbyLink);
-                        return;
-                    }
-                    var censoredMsg = FilterText(e.Data);
-                    string msg= $"<noparse>{censoredMsg}</noparse>";
-                    Sessions.Broadcast(msg);
-                    
+                    var escapeBullshit = e.Data.Replace("<noparse>", "").Replace("</noparse>", "");
+                    var cleaned = $"<noparse>{FilterText(escapeBullshit)}</noparse>";
+                    LinkRegex.Replace(cleaned, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
+                    Sessions.Broadcast(cleaned);
                 }
             }
         }
