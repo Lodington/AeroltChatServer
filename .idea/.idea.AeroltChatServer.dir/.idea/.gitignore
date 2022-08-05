@@ -1,0 +1,15 @@
+﻿# Default ignored files
+/shelf/
+/workspace.xml
+# Rider ignored files
+/contentModel.xml
+/modules.xml
+/projectSettingsUpdater.xml
+/.idea.AeroltChatServer.iml
+# Datasource local storage ignored files
+/../../../../../../../../../../../:\Users\Bubbet\Desktop\Dev\Programming\C#\AeroltChatServer\.idea\.idea.AeroltChatServer.dir\.idea/dataSources/
+/dataSources.local.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+/obj/
+/.idea/
