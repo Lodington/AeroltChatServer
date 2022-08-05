@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using WebSocketSharp;
 using WebSocketSharp.Server;
@@ -14,7 +16,8 @@ namespace AeroltChatServer
         // add array to store current users
         private partial class UserList
         {
-            public static List<string> Usernames = new List<string>();
+            public static Dictionary<IPEndPoint, string> UsernameMap = new Dictionary<IPEndPoint, string>();
+            public static Dictionary<IPEndPoint, WebSocket> EndpointMap = new Dictionary<IPEndPoint, WebSocket>();
         }
 
         private class Connect : WebSocketBehavior
@@ -40,13 +43,21 @@ namespace AeroltChatServer
             protected override void OnMessage(MessageEventArgs e)
             {
                 var usernameCensored = FilterText(e.Data);
-                UserList.Usernames.Add(usernameCensored);
-                Sessions.Broadcast(string.Join("\n", UserList.Usernames));
+                UserList.UsernameMap[Context.UserEndPoint] = usernameCensored;
+                UserList.EndpointMap[Context.UserEndPoint] = Context.WebSocket;
+                Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
             }
 
             protected override void OnClose(CloseEventArgs e)
             {
-                Sessions.Broadcast(string.Join("\n", UserList.Usernames));
+                foreach (var endPoint in from pair in UserList.EndpointMap let endpoint = pair.Key let socket = pair.Value where !socket.IsAlive select endpoint) RemoveUser(endPoint);
+                Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
+            }
+
+            public static void RemoveUser(IPEndPoint x)
+            {
+                UserList.UsernameMap.Remove(x);
+                UserList.EndpointMap.Remove(x);
             }
         }
 
@@ -55,20 +66,19 @@ namespace AeroltChatServer
             protected override void OnMessage(MessageEventArgs e)
             {
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data + " disconnected");
-                //Sessions.Broadcast("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data + " has left.");
-
-                UserList.Usernames.Remove(e.Data);
+                foreach (var endPoint in from pair in UserList.EndpointMap let endpoint = pair.Key let socket = pair.Value where !socket.IsAlive select endpoint) Usernames.RemoveUser(endPoint);
+                Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
             }
         }
         private class UserCount : WebSocketBehavior
         {
             protected override void OnMessage(MessageEventArgs e)
             {
-                Sessions.Broadcast($"{UserList.Usernames.Count}");
+                Sessions.Broadcast($"{UserList.UsernameMap.Count + 1}");
             }
             protected override void OnClose(CloseEventArgs e)
             {
-                Sessions.Broadcast($"{UserList.Usernames.Count}");
+                Sessions.Broadcast($"{UserList.UsernameMap.Count + 1}");
             }
         }
 
