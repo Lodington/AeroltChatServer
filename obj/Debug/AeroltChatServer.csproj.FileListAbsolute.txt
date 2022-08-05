@@ -1,0 +1,9 @@
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\bin\Debug\AeroltChatServer.exe
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\bin\Debug\AeroltChatServer.pdb
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\bin\Debug\websocket-sharp.dll
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\obj\Debug\AeroltChatServer.csproj.AssemblyReference.cache
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\obj\Debug\AeroltChatServer.csproj.SuggestedBindingRedirects.cache
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\obj\Debug\AeroltChatServer.csproj.CoreCompileInputs.cache
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\obj\Debug\AeroltChatServer.csproj.CopyComplete
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\obj\Debug\AeroltChatServer.exe
+C:\Users\tyler\RiderProjects\AeroltChatServer\AeroltChatServer\obj\Debug\AeroltChatServer.pdb

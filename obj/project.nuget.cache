@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "Bw8xUZOCeNEajMF1tXWwWpqTwA5zhVl7yYABYABdbYnFwzUYCTZOylBrIemYC454wha4JeeMfJLd1FBDNlRG0A==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\tyler\\RiderProjects\\AeroltChatServer\\AeroltChatServer\\AeroltChatServer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\tyler\\.nuget\\packages\\websocketsharp\\1.0.3-rc11\\websocketsharp.1.0.3-rc11.nupkg.sha512"
+  ],
+  "logs": []
+}
