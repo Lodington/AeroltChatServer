@@ -63,7 +63,6 @@ namespace AeroltChatServer
             {
                 var usernameCensored = FilterText(e.Data);
                 UserList.UsernameMap[Context.UserEndPoint] = usernameCensored;
-                UserList.EndpointMap[Context.UserEndPoint] = Context.WebSocket;
                 Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
             }
 
@@ -123,6 +122,11 @@ namespace AeroltChatServer
                 {
                     pair.Value.Send(s);
                 }
+            }
+
+            protected override void OnOpen()
+            {
+                UserList.EndpointMap[Context.UserEndPoint] = Context.WebSocket;
             }
 
             protected override void OnMessage(MessageEventArgs e)
