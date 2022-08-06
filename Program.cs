@@ -26,7 +26,7 @@ namespace AeroltChatServer
 
             public static void CleanDeadUsers()
             {
-                foreach (var endPoint in from pair in UserList.EndpointMap
+                foreach (var endPoint in from pair in EndpointMap
                     let endpoint = pair.Key
                     let socket = pair.Value
                     where !socket.IsAlive
@@ -99,11 +99,19 @@ namespace AeroltChatServer
         {
             private string adminKey = File.ReadAllText("elevatedkey.txt");
             
+            public static void SendToAdmins(string s)
+            {
+                foreach (var pair in UserList.EndpointMap.Where(x => UserList.AdminList.Contains(x.Key)))
+                {
+                    pair.Value.Send(s);
+                }
+            }
+            
             protected override void OnMessage(MessageEventArgs e)
             {
                 if (e.Data.Contains(adminKey))
                 {
-                    
+                    UserList.AdminList.Add(Context.UserEndPoint);
                 }
             }
         }
@@ -118,26 +126,19 @@ namespace AeroltChatServer
                     "ban", endpoint =>
                     {
                         Ban(endpoint);
-                        SendToAdmins($"<color=red><b>User Banned {UserList.UsernameMap[endpoint]}</b></color>");
+                        Admin.SendToAdmins($"<color=red><b>User Banned {UserList.UsernameMap[endpoint]}</b></color>");
                     }
                 },
                 {
                     "unban", endpoint =>
                     {
                         UnBan(endpoint);
-                        SendToAdmins($"<color=yellow><b>User UnBanned {UserList.UsernameMap[endpoint]}</b></color>");
+                        Admin.SendToAdmins($"<color=yellow><b>User UnBanned {UserList.UsernameMap[endpoint]}</b></color>");
                     }
                 }
             };
 
-            private static void SendToAdmins(string s)
-            {
-                //todo we store Endpoints in Admin list
-                foreach (var pair in UserList.EndpointMap.Where(x => UserList.AdminList.Contains(x.Key)))
-                {
-                    pair.Value.Send(s);
-                }
-            }
+            
 
             protected override void OnOpen()
             {
