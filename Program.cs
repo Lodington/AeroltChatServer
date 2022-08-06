@@ -100,21 +100,19 @@ namespace AeroltChatServer
 
             protected override void OnMessage(MessageEventArgs e)
             {
-                if (IsBanned(Context.UserEndPoint))
+                var who = Context.UserEndPoint;
+                if (!IsElevatedUser(who) && IsBanned(who))
                 {
                     Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "](Banned: " + Context.UserEndPoint + ")" + e.Data);
                     return;
                 }
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
-                if (e.Data != null)
-                {
-                    var escapeBullshit = e.Data.Replace("<noparse>", "").Replace("</noparse>", "");
-                    var cleaned = $"<noparse>{FilterText(escapeBullshit)}</noparse>";
-                    cleaned = LinkRegex.Replace(cleaned,
-                        match =>
-                            $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
-                    Sessions.Broadcast(cleaned);
-                }
+                
+                if (e.Data == null) return;
+                var text = e.Data;
+                if (!IsElevatedUser(who)) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
+                text = LinkRegex.Replace(text, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
+                Sessions.Broadcast(text);
             }
         }
 
@@ -125,6 +123,7 @@ namespace AeroltChatServer
             return censored;
         }
 
+        public static bool IsElevatedUser(IPEndPoint endpoint) => true; // TODO hook up to key system
         public static bool IsBanned(IPEndPoint endpoint) => bannedUsers.Find(new BsonDocument("ip", endpoint.ToString())).Any();
         public static void Ban(IPEndPoint endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
 
