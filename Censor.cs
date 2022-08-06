@@ -4,8 +4,6 @@ using System.Text.RegularExpressions;
 
 namespace AeroltChatServer
 {
-
-
     public class Censor
     {
         /// <summary>
