@@ -20,9 +20,9 @@ namespace AeroltChatServer
         // add array to store current users
         private partial class UserList
         {
-            public static Dictionary<IPEndPoint, string> UsernameMap = new Dictionary<IPEndPoint, string>();
-            public static Dictionary<IPEndPoint, WebSocket> EndpointMap = new Dictionary<IPEndPoint, WebSocket>();
-            public static List<IPEndPoint> AdminList = new List<IPEndPoint>();
+            public static Dictionary<IPAddress, string> UsernameMap = new Dictionary<IPAddress, string>();
+            public static Dictionary<IPAddress, WebSocket> EndpointMap = new Dictionary<IPAddress, WebSocket>();
+            public static List<IPAddress> AdminList = new List<IPAddress>();
 
             public static void CleanDeadUsers()
             {
@@ -30,9 +30,9 @@ namespace AeroltChatServer
                     let endpoint = pair.Key
                     let socket = pair.Value
                     where !socket.IsAlive
-                    select endpoint) RemoveUser(endPoint);
+                    select endpoint) RemoveUser(endPoint.MapToIPv4());
             }
-            public static void RemoveUser(IPEndPoint x)
+            public static void RemoveUser(IPAddress x)
             {
                 UsernameMap.Remove(x);
                 EndpointMap.Remove(x);
@@ -63,7 +63,7 @@ namespace AeroltChatServer
             protected override void OnMessage(MessageEventArgs e)
             {
                 var usernameCensored = FilterText(e.Data);
-                UserList.UsernameMap[Context.UserEndPoint] = usernameCensored;
+                UserList.UsernameMap[Context.UserEndPoint.Address] = usernameCensored;
                 Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
             }
 
@@ -112,7 +112,7 @@ namespace AeroltChatServer
         {
             public static Regex LinkRegex = new Regex(@"(#\d+)");
             public static Regex CommandRegex = new Regex(@"\$\$(.*) (.*)");
-            private static Dictionary<string, Action<IPEndPoint>> CommandMap = new Dictionary<string, Action<IPEndPoint>>()
+            private static Dictionary<string, Action<IPAddress>> CommandMap = new Dictionary<string, Action<IPAddress>>()
             {
                 {
                     "ban", endpoint =>
@@ -141,13 +141,14 @@ namespace AeroltChatServer
 
             protected override void OnOpen()
             {
-                UserList.EndpointMap[Context.UserEndPoint] = Context.WebSocket;
+                UserList.EndpointMap[Context.UserEndPoint.Address] = Context.WebSocket;
             }
 
             protected override void OnMessage(MessageEventArgs e)
             {
-                var who = Context.UserEndPoint;
-                if (!IsElevatedUser(who) && IsBanned(who))
+                var who = Context.UserEndPoint.Address;
+                var elevated = IsElevatedUser(who);
+                if (!elevated && IsBanned(who))
                 {
                     Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "](Banned: " + Context.UserEndPoint + ")" + e.Data);
                     return;
@@ -155,20 +156,26 @@ namespace AeroltChatServer
                 
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
 
-                if (IsElevatedUser(who))
+                if (elevated)
                 {
                     var command = CommandRegex.Match(e.Data);
-                    if (command.Success && CommandMap.TryGetValue(command.Groups[0].Value, out var action))
+                    if (command.Success && CommandMap.TryGetValue(command.Groups[0].Value, out Action<IPAddress> action))
+                    {
                         action(UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
-                    return;
+                        return;
+                    }
                 }
 
                 if (e.Data == null) return;
                 var text = e.Data;
-                if (!IsElevatedUser(who)) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
-                text = LinkRegex.Replace(text, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
-                //Todo Color Admin Name
-                Sessions.Broadcast(text);
+  
+                if (!elevated) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
+                text = LinkRegex.Replace(text, match => elevated ? $"<#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color>" : $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
+
+                if (!UserList.UsernameMap.TryGetValue(who, out var name)) return;
+                var prefix = $"[{name}]";
+                if (elevated) prefix = $"<color=#FFAA00>{prefix}</color>";
+                Sessions.Broadcast(prefix + " -> " + text);
             }
             
         }
@@ -180,10 +187,10 @@ namespace AeroltChatServer
             return censored;
         }
 
-        public static bool IsElevatedUser(IPEndPoint endpoint) => UserList.AdminList.Contains(endpoint);
-        public static bool IsBanned(IPEndPoint endpoint) => bannedUsers.Find(new BsonDocument("ip", endpoint.ToString())).Any();
-        public static void Ban(IPEndPoint endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
-        public static void UnBan(IPEndPoint endpoint) => bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.ToString()));
+        public static bool IsElevatedUser(IPAddress endpoint) => UserList.AdminList.Contains(endpoint);
+        public static bool IsBanned(IPAddress endpoint) => bannedUsers.Find(new BsonDocument("ip", endpoint.ToString())).Any();
+        public static void Ban(IPAddress endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
+        public static void UnBan(IPAddress endpoint) => bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.ToString()));
 
 
         private static void RunServer()
