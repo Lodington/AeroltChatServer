@@ -158,11 +158,9 @@ namespace AeroltChatServer
                 if (IsElevatedUser(who))
                 {
                     var command = CommandRegex.Match(e.Data);
-                    if (command.Success)
-                    {
-                        CommandMap[command.Groups[0].Value](UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
-                    }
-                    //Todo Return here or stop broadcast
+                    if (command.Success && CommandMap.TryGetValue(command.Groups[0].Value, out var action))
+                        action(UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
+                    return;
                 }
 
                 if (e.Data == null) return;
