@@ -47,6 +47,7 @@ namespace AeroltChatServer
             {
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data + " connected");
                 _name = e.Data;
+                
                 Sessions.Broadcast("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + "Welcome " + e.Data +" to the server!");
             }
 
@@ -94,6 +95,19 @@ namespace AeroltChatServer
                 Sessions.Broadcast($"{UserList.UsernameMap.Count + 1}");
             }
         }
+        
+        private class Admin : WebSocketBehavior
+        {
+            private string adminKey = File.ReadAllText("elevatedkey.txt");
+            
+            protected override void OnMessage(MessageEventArgs e)
+            {
+                if (e.Data.Contains(adminKey))
+                {
+                    
+                }
+            }
+        }
 
         private class SendMessage : WebSocketBehavior
         {
@@ -119,6 +133,7 @@ namespace AeroltChatServer
 
             private static void SendToAdmins(string s)
             {
+                //todo we store Endpoints in Admin list
                 foreach (var pair in UserList.EndpointMap.Where(x => UserList.AdminList.Contains(x.Key)))
                 {
                     pair.Value.Send(s);
@@ -133,21 +148,27 @@ namespace AeroltChatServer
                     Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "](Banned: " + Context.UserEndPoint + ")" + e.Data);
                     return;
                 }
+                
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
 
                 if (IsElevatedUser(who))
                 {
                     var command = CommandRegex.Match(e.Data);
-                    if (command.Success && CommandMap.TryGetValue(command.Groups[0].Value, out var action))
-                        action(UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
+                    if (command.Success)
+                    {
+                        CommandMap[command.Groups[0].Value](UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
+                    }
+                    //Todo Return here or stop broadcast
                 }
 
                 if (e.Data == null) return;
                 var text = e.Data;
                 if (!IsElevatedUser(who)) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
                 text = LinkRegex.Replace(text, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
+                //Todo Color Admin Name
                 Sessions.Broadcast(text);
             }
+            
         }
 
         private static string FilterText(string textToFilter)
@@ -162,17 +183,20 @@ namespace AeroltChatServer
         public static void Ban(IPEndPoint endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
         public static void UnBan(IPEndPoint endpoint) => bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.ToString()));
 
+
         private static void RunServer()
         {
             var ip = IPAddress.Any;
             var port = 5000;
 
-            var connectionString = File.ReadAllText("../../mongoconnectionstring.txt");
+            var connectionString = File.ReadAllText("mongoconnectionstring.txt");
             var client = new MongoClient(connectionString);
             var db = client.GetDatabase("AeroltChatServer");
             bannedUsers = db.GetCollection<BsonDocument>("BannedUsers");
 
             var server = new WebSocketServer($"ws://{ip}:{port}");
+            
+            server.AddWebSocketService<Admin>("/Admin");
             server.AddWebSocketService<SendMessage>("/Message");
             server.AddWebSocketService<Usernames>("/Usernames");
             server.AddWebSocketService<Disconnect>("/Disconnect");
