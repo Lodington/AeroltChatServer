@@ -22,6 +22,7 @@ namespace AeroltChatServer
         {
             public static Dictionary<IPEndPoint, string> UsernameMap = new Dictionary<IPEndPoint, string>();
             public static Dictionary<IPEndPoint, WebSocket> EndpointMap = new Dictionary<IPEndPoint, WebSocket>();
+            public static List<IPEndPoint> AdminList = new List<IPEndPoint>();
 
             public static void CleanDeadUsers()
             {
@@ -98,10 +99,31 @@ namespace AeroltChatServer
         {
             public static Regex LinkRegex = new Regex(@"(#\d+)");
             public static Regex CommandRegex = new Regex(@"\$\$(.*) (.*)");
-            private Dictionary<string, Action<IPEndPoint>> CommandMap = new Dictionary<string, Action<IPEndPoint>>()
+            private static Dictionary<string, Action<IPEndPoint>> CommandMap = new Dictionary<string, Action<IPEndPoint>>()
             {
-                {"ban", endpoint => Ban(endpoint)}
+                {
+                    "ban", endpoint =>
+                    {
+                        Ban(endpoint);
+                        SendToAdmins($"<color=red><b>User Banned {UserList.UsernameMap[endpoint]}</b></color>");
+                    }
+                },
+                {
+                    "unban", endpoint =>
+                    {
+                        UnBan(endpoint);
+                        SendToAdmins($"<color=yellow><b>User UnBanned {UserList.UsernameMap[endpoint]}</b></color>");
+                    }
+                }
             };
+
+            private static void SendToAdmins(string s)
+            {
+                foreach (var pair in UserList.EndpointMap.Where(x => UserList.AdminList.Contains(x.Key)))
+                {
+                    pair.Value.Send(s);
+                }
+            }
 
             protected override void OnMessage(MessageEventArgs e)
             {
@@ -116,10 +138,8 @@ namespace AeroltChatServer
                 if (IsElevatedUser(who))
                 {
                     var command = CommandRegex.Match(e.Data);
-                    if (command.Success)
-                    {
-                        CommandMap[command.Groups[0].Value](UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
-                    }
+                    if (command.Success && CommandMap.TryGetValue(command.Groups[0].Value, out var action))
+                        action(UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
                 }
 
                 if (e.Data == null) return;
@@ -137,7 +157,7 @@ namespace AeroltChatServer
             return censored;
         }
 
-        public static bool IsElevatedUser(IPEndPoint endpoint) => true; // TODO hook up to key system
+        public static bool IsElevatedUser(IPEndPoint endpoint) => UserList.AdminList.Contains(endpoint);
         public static bool IsBanned(IPEndPoint endpoint) => bannedUsers.Find(new BsonDocument("ip", endpoint.ToString())).Any();
         public static void Ban(IPEndPoint endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
         public static void UnBan(IPEndPoint endpoint) => bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.ToString()));
