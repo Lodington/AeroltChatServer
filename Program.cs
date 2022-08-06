@@ -97,6 +97,11 @@ namespace AeroltChatServer
         private class SendMessage : WebSocketBehavior
         {
             public static Regex LinkRegex = new Regex(@"(#\d+)");
+            public static Regex CommandRegex = new Regex(@"\$\$(.*) (.*)");
+            private Dictionary<string, Action<IPEndPoint>> CommandMap = new Dictionary<string, Action<IPEndPoint>>()
+            {
+                {"ban", endpoint => Ban(endpoint)}
+            };
 
             protected override void OnMessage(MessageEventArgs e)
             {
@@ -107,7 +112,16 @@ namespace AeroltChatServer
                     return;
                 }
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
-                
+
+                if (IsElevatedUser(who))
+                {
+                    var command = CommandRegex.Match(e.Data);
+                    if (command.Success)
+                    {
+                        CommandMap[command.Groups[0].Value](UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
+                    }
+                }
+
                 if (e.Data == null) return;
                 var text = e.Data;
                 if (!IsElevatedUser(who)) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
