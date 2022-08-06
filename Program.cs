@@ -126,6 +126,7 @@ namespace AeroltChatServer
         public static bool IsElevatedUser(IPEndPoint endpoint) => true; // TODO hook up to key system
         public static bool IsBanned(IPEndPoint endpoint) => bannedUsers.Find(new BsonDocument("ip", endpoint.ToString())).Any();
         public static void Ban(IPEndPoint endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
+        public static void UnBan(IPEndPoint endpoint) => bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.ToString()));
 
         private static void RunServer()
         {
