@@ -100,6 +100,11 @@ namespace AeroltChatServer
 
             protected override void OnMessage(MessageEventArgs e)
             {
+                if (IsBanned(Context.UserEndPoint))
+                {
+                    Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "](Banned: " + Context.UserEndPoint + ")" + e.Data);
+                    return;
+                }
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
                 if (e.Data != null)
                 {
