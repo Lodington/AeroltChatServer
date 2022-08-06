@@ -111,7 +111,7 @@ namespace AeroltChatServer
             {
                 if (e.Data.Contains(adminKey))
                 {
-                    UserList.AdminList.Add(Context.UserEndPoint);
+                    UserList.AdminList.Add(Context.UserEndPoint.Address);
                 }
             }
         }
