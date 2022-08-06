@@ -160,9 +160,9 @@ namespace AeroltChatServer
                 if (elevated)
                 {
                     var command = CommandRegex.Match(e.Data);
-                    if (command.Success && CommandMap.TryGetValue(command.Groups[0].Value, out Action<IPAddress> action))
+                    if (command.Success && CommandMap.TryGetValue(command.Groups[1].Value, out Action<IPAddress> action))
                     {
-                        action(UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[1].Value)).Key);
+                        action(UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[2].Value)).Key);
                         return;
                     }
                 }
