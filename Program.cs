@@ -20,9 +20,8 @@ namespace AeroltChatServer
         // add array to store current users
         private partial class UserList
         {
-            public static Dictionary<IPAddress, string> UsernameMap = new Dictionary<IPAddress, string>();
+            public static Dictionary<IPAddress, User> UsernameMap = new Dictionary<IPAddress, User>();
             public static Dictionary<IPAddress, WebSocket> EndpointMap = new Dictionary<IPAddress, WebSocket>();
-            public static List<IPAddress> AdminList = new List<IPAddress>();
 
             public static void CleanDeadUsers()
             {
@@ -63,7 +62,11 @@ namespace AeroltChatServer
             protected override void OnMessage(MessageEventArgs e)
             {
                 var usernameCensored = FilterText(e.Data);
-                UserList.UsernameMap[Context.UserEndPoint.Address] = usernameCensored;
+                UserList.UsernameMap[Context.UserEndPoint.Address] = new User()
+                {
+                    UserName = usernameCensored,
+                    IsBanned = IsBanned(Context.UserEndPoint.Address)
+                };
                 Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
             }
 
@@ -98,21 +101,18 @@ namespace AeroltChatServer
         private class Admin : WebSocketBehavior
         {
             private string adminKey = File.ReadAllText("elevatedkey.txt");
-            
+            //TODO maybe get a users key from file or database and store it in the user class?
             public static void SendToAdmins(string s)
             {
-                foreach (var pair in UserList.EndpointMap.Where(x => UserList.AdminList.Contains(x.Key)))
-                {
-                    pair.Value.Send(s);
-                }
+                foreach (var pair in UserList.UsernameMap.Where(x => x.Value.IsElevated).Select(x => UserList.EndpointMap[x.Key]))
+                    pair.Send(s);
             }
-            
+
             protected override void OnMessage(MessageEventArgs e)
             {
                 if (e.Data.Contains(adminKey))
-                {
-                    UserList.AdminList.Add(Context.UserEndPoint.Address);
-                }
+                    if (UserList.UsernameMap.TryGetValue(Context.UserEndPoint.Address, out var user))
+                        user.IsElevated = true;
             }
         }
 
@@ -123,6 +123,7 @@ namespace AeroltChatServer
             private static Dictionary<string, Action<IPAddress>> CommandMap = new Dictionary<string, Action<IPAddress>>()
             {
                 {
+                    //TODO getuser command to check ban status?
                     "ban", endpoint =>
                     {
                         Ban(endpoint);
@@ -148,12 +149,16 @@ namespace AeroltChatServer
             protected override void OnMessage(MessageEventArgs e)
             {
                 var who = Context.UserEndPoint.Address;
-                var elevated = IsElevatedUser(who);
+                var elevated = UserList.UsernameMap[who].IsElevated;
                 if (!elevated && IsBanned(who))
+                    return;
+
+                if (IncomingRequest(who, e.Data , out string message))
                 {
-                    Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "](Banned: " + Context.UserEndPoint + ")" + e.Data);
+                    Send(message);
                     return;
                 }
+                
                 
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data);
 
@@ -162,6 +167,7 @@ namespace AeroltChatServer
                     var command = CommandRegex.Match(e.Data);
                     if (command.Success && CommandMap.TryGetValue(command.Groups[1].Value, out Action<IPAddress> action))
                     {
+                        //todo thats fucked
                         action(UserList.UsernameMap.FirstOrDefault(x => x.Value.Equals(command.Groups[2].Value)).Key);
                         return;
                     }
@@ -174,25 +180,47 @@ namespace AeroltChatServer
                 text = LinkRegex.Replace(text, match => elevated ? $"<#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color>" : $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
 
                 if (!UserList.UsernameMap.TryGetValue(who, out var name)) return;
-                var prefix = $"[{name}]";
+                var prefix = $"[{name.UserName}]";
                 if (elevated) prefix = $"<color=#FFAA00>{prefix}</color>";
                 Sessions.Broadcast(prefix + " -> " + text);
             }
             
         }
 
+        public static bool IncomingRequest(IPAddress user, string msg, out string message)
+        {
+            if (user != null)
+            {
+                //TODO cant math right now 
+                if ((DateTime.Now - UserList.UsernameMap[user].CoolDownTime).TotalSeconds < 1)
+                {
+                    message = $"<color=yellow>Cooldown Remaining{DateTime.Now - UserList.UsernameMap[user].CoolDownTime:mm:ss}";
+                    return true;
+                }
+                if ((DateTime.Now - UserList.UsernameMap[user].LastRequest).TotalSeconds >= 2)
+                {
+                   
+                    UserList.UsernameMap[user].LastRequest = DateTime.Now;
+                    UserList.UsernameMap[user].CoolDownTime = DateTime.Now.AddMinutes(5);
+                    message = $"<color=red>Typing to fast in chat cooldown for {UserList.UsernameMap[user].CoolDownTime:mm:ss}";
+                    return true;
+                }
+            }
+            UserList.UsernameMap[user].LastRequest = DateTime.Now;
+            message = ":thumbs up:";
+            return false;
+        }
+        
         private static string FilterText(string textToFilter)
         {
             var censor = new Censor(ProfanityBase._wordList);
             var censored = censor.CensorText(textToFilter);
             return censored;
         }
-
-        public static bool IsElevatedUser(IPAddress endpoint) => UserList.AdminList.Contains(endpoint);
         public static bool IsBanned(IPAddress endpoint) => bannedUsers.Find(new BsonDocument("ip", endpoint.ToString())).Any();
         public static void Ban(IPAddress endpoint) => bannedUsers.InsertOne(new BsonDocument("ip", endpoint.ToString()));
         public static void UnBan(IPAddress endpoint) => bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.ToString()));
-
+        
 
         private static void RunServer()
         {

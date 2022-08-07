@@ -34,11 +34,18 @@ namespace AeroltChatServer
             foreach (string censoredWord in CensoredWords)
             {
                 var regularExpression = ToRegexPattern(censoredWord);
-
+                
                 censoredText = Regex.Replace(censoredText, regularExpression, StarCensoredMatch,
                     RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                if (censoredText.Contains(censoredWord))
+                {
+                    censoredText.Replace(censoredWord, censoredText);
+                }
+                
             }
 
+            
+            
             return censoredText;
         }
 
