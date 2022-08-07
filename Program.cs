@@ -169,6 +169,7 @@ namespace AeroltChatServer
 
                 if (e.Data == null) return;
                 var text = e.Data;
+<<<<<<< Updated upstream
   
                 if (!elevated) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
                 text = LinkRegex.Replace(text, match => elevated ? $"<#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color>" : $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
@@ -177,6 +178,12 @@ namespace AeroltChatServer
                 var prefix = $"[{name}]";
                 if (elevated) prefix = $"<color=#FFAA00>{prefix}</color>";
                 Sessions.Broadcast(prefix + " -> " + text);
+=======
+                if (!IsElevatedUser(who)) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
+                text = LinkRegex.Replace(text, match => $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
+                
+                Sessions.Broadcast(text);
+>>>>>>> Stashed changes
             }
             
         }
