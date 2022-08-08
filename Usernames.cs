@@ -1,37 +1,30 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using WebSocketSharp;
-using WebSocketSharp.Server;
 
 namespace AeroltChatServer
 {
-	public class Usernames : WebSocketBehavior
+	public class Usernames : BaseBehaviour<Usernames>
 	{
-		private static Usernames _instance;
-
-		public Usernames()
-		{
-			_instance = this;
-		}
-
-		public static void Broadcast(string message)
-		{
-			_instance.Sessions.Broadcast(message);
-		}
-
 		protected override void OnOpen()
 		{
-			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).UsernameContext = Context;
+			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).UsernameId = ID;
+			BroadcastUserList(); // I worry about the users username not being added yet when broadcasting here.
 		}
 		
 		protected override void OnClose(CloseEventArgs e)
 		{
-			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).Kill();
+			base.OnClose(e);
+			BroadcastUserList();
+			Sessions.CloseSession(ID);
 		}
 
-		public static void BroadcastUserlist()
+		public static void BroadcastUserList()
 		{
-			var message = string.Join("\n", UserMeta.UsersEnumerator.Select(x => x.Username));
-			_instance.Sessions.Broadcast(message);
+			if (!UserMeta.UsersEnumerator.Any()) return;
+			var users = UserMeta.UsersEnumerator.ToArray();
+			var message = string.Join("\n", users.Select(x => x.Username));
+			Broadcast(message);
 		}
 	}
 }

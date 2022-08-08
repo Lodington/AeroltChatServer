@@ -1,4 +1,7 @@
-﻿using MongoDB.Bson;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace AeroltChatServer
@@ -14,13 +17,18 @@ namespace AeroltChatServer
 			var db = client.GetDatabase("AeroltChatServer");
 			_bannedUsers = db.GetCollection<BsonDocument>("BannedUsers");
 			
-			// Make guid a unique key???
-			var options = new CreateIndexOptions() {Unique = true};
-			var field = new StringFieldDefinition<User>("Guid");
+			// Make uuid a unique key???
+			var options = new CreateIndexOptions {Unique = true};
+			var field = new StringFieldDefinition<User>("UUID");
 			var indexDefinition = new IndexKeysDefinitionBuilder<User>().Ascending(field);
 			_users = db.GetCollection<User>("Users");
 			var indexModel = new CreateIndexModel<User>(indexDefinition, options);
-			var test2 = _users.Indexes.CreateOne(indexModel);
+			var indexes = _users.Indexes.List();
+			while (indexes.MoveNext())
+				if (indexes.Current.SelectMany(doc => doc).Any(elem => elem.Name == "UUID"))
+					return;
+
+			_users.Indexes.CreateOne(indexModel);
 		}
 
 		public static bool ContainsUsername(string userName)
@@ -30,8 +38,27 @@ namespace AeroltChatServer
 		
 		public static User GetUserFromUserName(string username)
 		{
-			var usersCollection = _users.Database.GetCollection<User>("Users").Find(x => x.UserName == username).SingleAsync();
-			return usersCollection?.Result;
+			var targets = _users.Find(x => x.UserName == username);
+			return targets.Any() ? targets.First() : null;
 		}
+
+		public static bool IsBanned(UserMeta endpoint) => _bannedUsers.Find(new BsonDocument("ip", endpoint.Address.ToString())).Any();
+		// TODO test for existing ips banned
+		public static void Ban(UserMeta endpoint) => _bannedUsers.InsertOne(new BsonDocument("ip", endpoint.Address.ToString()));
+		public static void UnBan(UserMeta endpoint) => _bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.Address.ToString()));
+
+		public static void CreateNewGuid(Guid guid)
+		{
+			if (guid == default) return;
+			var model = new User { UUID = guid.ToString() };
+			if (_users.CountDocuments(x => x.UUID == guid.ToString(), new CountOptions() {Limit = 1}) == 0)
+				_users.InsertOne(model);
+		}
+
+		public static void UpdateUsername(Guid guid, string username) => _users.UpdateOne(x => x.UUID == guid.ToString(), Builders<User>.Update.Set(x => x.UserName, username));
+		public static string GetUsername(Guid id) => _users.FindSync(x => x.UUID == id.ToString()).FirstOrDefault()?.UserName;
+
+		public static bool IsElevated(Guid id) => _users.FindSync(x => x.UUID == id.ToString()).FirstOrDefault()?.IsElevated ?? false;
+		public static void UpdateElevated(Guid id, bool value) => _users.UpdateOne(x => x.UUID == id.ToString(), Builders<User>.Update.Set(x => x.IsElevated, value));
 	}
 }

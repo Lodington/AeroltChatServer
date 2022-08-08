@@ -1,31 +1,13 @@
 ﻿using System;
 using WebSocketSharp;
-using WebSocketSharp.Server;
 
 namespace AeroltChatServer
 {
-	public class Connect : WebSocketBehavior
+	public class Connect : BaseBehaviour<Connect>
 	{
-		private static Connect _instance;
-
-		public Connect()
-		{
-			_instance = this;
-		}
-
-		public static void Broadcast(string message)
-		{
-			_instance.Sessions.Broadcast(message);
-		}
-		
 		protected override void OnOpen()
 		{
-			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).ConnectContext = Context;
-		}
-
-		protected override void OnClose(CloseEventArgs e)
-		{
-			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).Kill();
+			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).ConnectId = ID;
 		}
 
 		protected override void OnMessage(MessageEventArgs e)
@@ -50,6 +32,7 @@ namespace AeroltChatServer
 				user.Username = userName;
 			}
 			user.Id = guid;
+			//if (!user.IsElevated && user.IsBanned) user.Kill(); disallow banned people to connect?
 			Send(guid.ToString());
 		}
 	}
