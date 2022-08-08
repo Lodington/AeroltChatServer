@@ -39,10 +39,16 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Censor.cs" />
+        <Compile Include="Connect.cs" />
+        <Compile Include="Database.cs" />
+        <Compile Include="Helpers.cs" />
+        <Compile Include="Message.cs" />
         <Compile Include="ProfanityBase.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="ServerProgram.cs" />
         <Compile Include="User.cs" />
+        <Compile Include="Usernames.cs" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="MongoDB.Driver" Version="2.17.1" />

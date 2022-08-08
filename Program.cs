@@ -11,15 +11,15 @@ using WebSocketSharp.Server;
 
 namespace AeroltChatServer
 {
-    
-// State object for reading client data asynchronously  
+    // State object for reading client data asynchronously  
     class Server
     {
         private static IMongoCollection<BsonDocument> _bannedUsers;
         private static IMongoCollection<BsonDocument> _users;
+        private static WebSocketServer WSServer;
 
         // add array to store current users
-        private partial class UserList
+        public static class UserList
         {
             public static List<string> usernames = new List<string>();
             public static List<string> AdminList = new List<string>();
@@ -47,20 +47,35 @@ namespace AeroltChatServer
 
             protected override void OnMessage(MessageEventArgs e)
             {
-                var nameExist = GetUserFromUserName(e.Data) != null;
-                if (nameExist) _name = $"{e.Data}#{new Random().Next(1000, 9999)}";
-                var newUser = SetNewUser(NewUUID().ToString(), e.Data, Context.UserEndPoint.Address.ToString(), DateTime.Now,
-                    TimeSpan.FromMinutes(5), false, false);
-                Send(newUser.UUID);
+                if (e.Data.IsNullOrEmpty()) return;
+                if (!Guid.TryParse(e.Data, out var guid))
+                {
+                    var rootName = e.Data;
+                    var userName = e.Data;
+                    var rand = new Random();
+                    while (GetUserFromUserName(userName) != null)
+                    {
+                        userName = rootName + "#" + rand.Next(1000, 9999);
+                    }
+
+                    guid = NewUUID();
+                    SetNewUser(guid, userName, Context.UserEndPoint.Address);
+                }
+                Send(guid.ToString());
                 
-                User user;
-                if (Guid.TryParse(e.Data, out Guid result)) user = GetUserFromUUID(result);
             }
         }
 
         private class Usernames : WebSocketBehavior
         {
+            public static Usernames instance;
 
+            public Usernames()
+            {
+                instance = this;
+            }
+
+            // TODO username isnt sent here any longer
             protected override void OnMessage(MessageEventArgs e)
             {
                 var user = GetUserFromUUID(Guid.Parse(e.Data));
@@ -68,52 +83,19 @@ namespace AeroltChatServer
                 UserList.UsernameMap[Context.UserEndPoint.Address] = usernameCensored;
                 Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
             }
-
-            protected override void OnClose(CloseEventArgs e)
-            {
-                UserList.CleanDeadUsers();
-                Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
-            }
         }
 
-        private class Disconnect : WebSocketBehavior
-        {
-            protected override void OnMessage(MessageEventArgs e)
-            {
-                Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + e.Data + " disconnected");
-                UserList.CleanDeadUsers();
-                Sessions.Broadcast(string.Join("\n", UserList.UsernameMap.Values));
-            }
-        }
-        private class UserCount : WebSocketBehavior
-        {
-            protected override void OnMessage(MessageEventArgs e)
-            {
-                Sessions.Broadcast($"{UserList.UsernameMap.Count + 1}");
-            }
-            protected override void OnClose(CloseEventArgs e)
-            {
-                Sessions.Broadcast($"{UserList.UsernameMap.Count + 1}");
-            }
-        }
+
         
-        private class Admin : WebSocketBehavior
+        public static void SendToAdmins(string s)
         {
-            public static void SendToAdmins(string s)
-            {
-                var us = _users.Database.GetCollection<User>("Users").Find(x => x.IsElevated).ToList();
-                foreach (var pair in us.Select(x => UserList.EndpointMap[IPAddress.Parse(x.IpAddress)]))
-                    pair.Send(s);
-            }
-
-            protected override void OnMessage(MessageEventArgs e)
-            {
-                var user = GetUserFromUUID(Guid.Parse(e.Data));
-                if (user.UUID.Equals(e.Data) && user.IsElevated) UserList.AdminList.Add(user.UUID);
-            }
+            var us = _users.Database.GetCollection<User>("Users").Find(x => x.IsElevated).ToList();
+            foreach (var pair in us.Select(x => UserList.EndpointMap[IPAddress.Parse(x.IpAddress)]))
+                pair.Send(s);
         }
 
-        private class SendMessage : WebSocketBehavior
+
+        public class Message : WebSocketBehavior
         {
             public static Regex LinkRegex = new Regex(@"(#\d+)");
             public static Regex CommandRegex = new Regex(@"\$\$(.*) (.*)");
@@ -124,20 +106,18 @@ namespace AeroltChatServer
                     "ban", endpoint =>
                     {
                         Ban(endpoint);
-                        Admin.SendToAdmins($"<color=red><b>User Banned {UserList.UsernameMap[endpoint]}</b></color>");
+                        SendToAdmins($"<color=red><b>User Banned {UserList.UsernameMap[endpoint]}</b></color>");
                     }
                 },
                 {
                     "unban", endpoint =>
                     {
                         UnBan(endpoint);
-                        Admin.SendToAdmins($"<color=yellow><b>User UnBanned {UserList.UsernameMap[endpoint]}</b></color>");
+                        SendToAdmins($"<color=yellow><b>User UnBanned {UserList.UsernameMap[endpoint]}</b></color>");
                     }
                 }
             };
-
             
-
             protected override void OnOpen()
             {
                 UserList.EndpointMap[Context.UserEndPoint.Address] = Context.WebSocket;
@@ -214,16 +194,16 @@ namespace AeroltChatServer
             var myuuid = Guid.NewGuid();
             return myuuid;
         }
-        
-        
-        public static User SetNewUser(string uuid, string username, string ipAddress, DateTime lastRequest, TimeSpan cooldownTime,bool isElevated, bool isBanned)
+
+        public static User SetNewUser(Guid uuid, string username, IPAddress ipAddress, DateTime? lastRequest = null, TimeSpan? cooldownTime = null, bool isElevated = false, bool isBanned = false) => SetNewUser(uuid.ToString(), username, ipAddress.ToString(), lastRequest, cooldownTime, isElevated, isBanned);
+        public static User SetNewUser(string uuid, string username, string ipAddress, DateTime? lastRequest = null, TimeSpan? cooldownTime = null, bool isElevated = false, bool isBanned = false)
         {
             var elevatedUserCard = new BsonDocument { 
                 { "UUID", uuid },
                 { "UserName", username },
                 { "IpAddress", ipAddress },
-                { "LastRequest", lastRequest },
-                { "CoolDownTime", cooldownTime.ToString() },
+                { "LastRequest", lastRequest ?? DateTime.Now },
+                { "CoolDownTime", (cooldownTime ?? TimeSpan.FromMinutes(5)).ToString() },
                 { "IsElevated", isElevated },
                 { "IsBanned", isBanned }
             };
@@ -242,23 +222,20 @@ namespace AeroltChatServer
             _bannedUsers = db.GetCollection<BsonDocument>("BannedUsers");
             _users = db.GetCollection<BsonDocument>("Users");
 
-            var server = new WebSocketServer($"ws://{ip}:{port}");
+            WSServer = new WebSocketServer($"ws://{ip}:{port}");
+
+            WSServer.AddWebSocketService<Message>("/Message");
+            WSServer.AddWebSocketService<Usernames>("/Usernames");
+            WSServer.AddWebSocketService<Connect>("/Connect");
             
-            server.AddWebSocketService<Admin>("/Admin");
-            server.AddWebSocketService<SendMessage>("/Message");
-            server.AddWebSocketService<Usernames>("/Usernames");
-            server.AddWebSocketService<Disconnect>("/Disconnect");
-            server.AddWebSocketService<UserCount>("/UserCount");
-            server.AddWebSocketService<Connect>("/Connect");
-            
-            server.Start();
+            WSServer.Start();
             Console.WriteLine($"Server started on {ip} listening on port {port}...");
             Console.WriteLine("Waiting for connections...");
             
             Console.ReadKey(true);
         }
 
-        public static void Main(string[] args)
+        public static void MainOld(string[] args)
         {
             RunServer();
         }
