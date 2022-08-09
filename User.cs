@@ -10,7 +10,7 @@ namespace AeroltChatServer
 {
     public class UserMeta
     {
-        private static readonly ConcurrentBag<UserMeta> Users = new ConcurrentBag<UserMeta>();
+        private static readonly List<UserMeta> Users = new List<UserMeta>();
 
         private static readonly ConcurrentDictionary<IPAddress, string> messageIDQueue = new ConcurrentDictionary<IPAddress, string>();
         private static readonly ConcurrentDictionary<IPAddress, string> usernamesIDQueue = new ConcurrentDictionary<IPAddress, string>();
@@ -203,6 +203,7 @@ namespace AeroltChatServer
                 UsernameId = null;
                 MessageId = null;
                 ConnectId = null;
+                Users.Remove(this);
             }
         }
     }

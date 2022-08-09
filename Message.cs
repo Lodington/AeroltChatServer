@@ -21,9 +21,10 @@ namespace AeroltChatServer
 		{
 			if (e.Data == null) return;
 			var user = UserMeta.GetUserFromSocketId(ID);
-			if (!user.IsElevated && user.IsBanned) return;
-                
-			Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + user.Username + " -> " + e.Data);
+			var isBanned = user?.IsBanned ?? false ? " (Banned)" : "";
+			var isElevated = user?.IsElevated ?? false ? " *" : "";
+			Console.WriteLine($"[{DateTime.Now:HH:mm:ss}]{isBanned}{isElevated} {user?.Username ?? "Unknown"} -> {e.Data}");
+			if (user is null || !user.IsElevated && user.IsBanned) return;
 
 			var command = CommandRegex.Match(e.Data);
 			if (command.Success)
