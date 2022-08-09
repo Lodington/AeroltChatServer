@@ -27,6 +27,7 @@ namespace AeroltChatServer
             var user = new UserMeta(guid, address, connectId);
             if (messageIDQueue.ContainsKey(address) && messageIDQueue.TryRemove(address, out var id)) user.MessageId = id;
             if (usernamesIDQueue.ContainsKey(address) && usernamesIDQueue.TryRemove(address, out var id2)) user.UsernameId = id2;
+            Users.Add(user);
             PruneDuplicateGuids(guid, address);
             return user;
         }
