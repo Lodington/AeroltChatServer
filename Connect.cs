@@ -25,9 +25,7 @@ namespace AeroltChatServer
 
 				guid = Guid.NewGuid();
 			}
-			var user = UserMeta.CreateUser(guid, Context.UserEndPoint.Address, ID);
-			if (!string.IsNullOrWhiteSpace(userName))
-				user.Username = userName;
+			UserMeta.CreateUser(guid, Context.UserEndPoint.Address, ID, userName);
 			//if (!user.IsElevated && user.IsBanned) user.Kill(); disallow banned people to connect?
 			Send(guid.ToString());
 		}

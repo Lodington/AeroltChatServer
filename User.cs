@@ -22,15 +22,24 @@ namespace AeroltChatServer
 
         // Used to pair a connection together, in any ws connection order. Sockets can get mixed up if multiple connections happen too fast from the same ip.
         #region UserCreation
-        public static UserMeta CreateUser(Guid guid, IPAddress address, string connectId)
+        public static void CreateUser(Guid guid, IPAddress address, string connectId, string userName)
         {
-            var user = new UserMeta(guid, address, connectId);
+            var user = new UserMeta(guid, address, connectId, userName);
             if (messageIDQueue.ContainsKey(address) && messageIDQueue.TryRemove(address, out var id)) user.MessageId = id;
             if (usernamesIDQueue.ContainsKey(address) && usernamesIDQueue.TryRemove(address, out var id2)) user.UsernameId = id2;
             Users.Add(user);
+            if (user.KillInvalidUser()) return;
             PruneDuplicateGuids(guid, address);
-            return user;
         }
+
+        private bool KillInvalidUser()
+        {
+            if (!string.IsNullOrEmpty(Username)) return false;
+            Kill(); // Kill connections that have a valid guid but didnt supply a username.
+            Database.DropGuid(_id);
+            return true;
+        }
+
         public static void AddMessageId(IPAddress address, string messageId)
         {
             var user = Users.FirstOrDefault(x => Equals(x.Address, address) && x.MessageId == null);
@@ -71,8 +80,10 @@ namespace AeroltChatServer
         private bool? _banned;
         private bool? _elevated;
 
-        private UserMeta(Guid address, IPAddress ipAddress, string connectId)
+        private UserMeta(Guid address, IPAddress ipAddress, string connectId, string userName)
         {
+            if (!string.IsNullOrWhiteSpace(userName))
+                Username = userName;
             Id = address;
             Address = ipAddress;
             ConnectId = connectId;

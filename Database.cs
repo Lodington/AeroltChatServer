@@ -47,12 +47,14 @@ namespace AeroltChatServer
 		public static void Ban(UserMeta endpoint) => _bannedUsers.InsertOne(new BsonDocument("ip", endpoint.Address.ToString()));
 		public static void UnBan(UserMeta endpoint) => _bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.Address.ToString()));
 
-		public static void EnsureNewGuid(Guid guid)
+		public static bool EnsureNewGuid(Guid guid)
 		{
-			if (guid == default) return;
+			if (guid == default) return true;
 			var model = new User { UUID = guid.ToString() };
-			if (_users.CountDocuments(x => x.UUID == guid.ToString(), new CountOptions() {Limit = 1}) == 0)
-				_users.InsertOne(model);
+			if (_users.CountDocuments(x => x.UUID == guid.ToString(), new CountOptions() {Limit = 1}) != 0)
+				return false;
+			_users.InsertOne(model);
+			return true;
 		}
 
 		public static void UpdateUsername(Guid guid, string username) => _users.UpdateOne(x => x.UUID == guid.ToString(), Builders<User>.Update.Set(x => x.UserName, username));
@@ -60,5 +62,11 @@ namespace AeroltChatServer
 
 		public static bool IsElevated(Guid id) => _users.FindSync(x => x.UUID == id.ToString()).FirstOrDefault()?.IsElevated ?? false;
 		public static void UpdateElevated(Guid id, bool value) => _users.UpdateOne(x => x.UUID == id.ToString(), Builders<User>.Update.Set(x => x.IsElevated, value));
+
+		public static void DropGuid(Guid id)
+		{
+			if (_users.CountDocuments(x => x.UUID == id.ToString(), new CountOptions {Limit = 1}) != 0)
+				_users.DeleteOne(x => x.UUID == id.ToString());
+		}
 	}
 }
