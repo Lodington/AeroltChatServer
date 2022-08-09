@@ -12,12 +12,12 @@ namespace AeroltChatServer
 
 		protected override void OnMessage(MessageEventArgs e)
 		{
+			var user = UserMeta.GetOrMakeUser(Context.UserEndPoint.Address);
 			if (e.Data.IsNullOrEmpty())
 			{
-				UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).Kill();
+				user.Kill();
 				return;
 			}
-			var user = UserMeta.GetOrMakeUser(Context.UserEndPoint.Address);
 			if (!Guid.TryParse(e.Data, out var guid))
 			{
 				var rootName = Helpers.FilterText(e.Data);

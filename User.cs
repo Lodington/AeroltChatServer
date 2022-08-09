@@ -4,18 +4,22 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using MongoDB.Bson;
 
 namespace AeroltChatServer
 {
     public class UserMeta
     {
-        private static readonly ConcurrentDictionary<IPAddress, UserMeta> Users = new ConcurrentDictionary<IPAddress, UserMeta>();
-        private static readonly ConcurrentDictionary<Guid, UserMeta> _connectedUsers = new ConcurrentDictionary<Guid, UserMeta>();
-        private static readonly ConcurrentDictionary<string, UserMeta> IdMap = new ConcurrentDictionary<string, UserMeta>();
-        public static IEnumerable<UserMeta> UsersEnumerator => _connectedUsers.Values;
+        private static readonly ConcurrentDictionary<IPAddress, UserMeta> Users =
+            new ConcurrentDictionary<IPAddress, UserMeta>();
 
+        private static readonly ConcurrentDictionary<Guid, UserMeta> _connectedUsers =
+            new ConcurrentDictionary<Guid, UserMeta>();
+
+        private static readonly ConcurrentDictionary<string, UserMeta> IdMap =
+            new ConcurrentDictionary<string, UserMeta>();
+
+        public static IEnumerable<UserMeta> UsersEnumerator => _connectedUsers.Values;
         public static IEnumerable<UserMeta> AdminsEnumerator => UsersEnumerator.Where(x => x.IsElevated);
 
         public static UserMeta GetOrMakeUser(IPAddress address)
@@ -24,22 +28,21 @@ namespace AeroltChatServer
             var val = Users[address];
             return val;
         }
-        
+
         public static UserMeta? PopUserFromId(string id)
         {
-            
-                IdMap.TryRemove(id, out var val);
-                return val;
+            IdMap.TryRemove(id, out var val);
+            return val;
         }
-        
+
         private string? _usernameId;
         private string? _connectId;
         private string? _messageId;
-        
+
         public IPAddress Address;
         private bool _wasKilled;
         private Guid _id;
-        
+
         private string? _username;
         private bool? _banned;
         private bool? _elevated;
@@ -52,23 +55,31 @@ namespace AeroltChatServer
         public object _messageLock = new object();
         public object _connectLock = new object();
         public object _usernameLock = new object();
+        private object _killedLock = new object();
+
         public string? MessageId
         {
-            get => _messageId;
+            get { 
+                lock (_messageLock)
+                {
+                    return _messageId;
+                }
+            }
             set
             {
                 lock (_messageLock)
                 {
-                    
                     if (!string.IsNullOrWhiteSpace(_messageId))
                     {
-                        Usernames.Close(_messageId);
+                        Message.Close(_messageId);
                         IdMap.TryRemove(_messageId!, out _);
+                        _wasKilled = true;
                     }
 
                     _messageId = value;
-                    if (!string.IsNullOrWhiteSpace(_messageId))
-                        IdMap.TryAdd(_messageId!, this);
+                    if (string.IsNullOrWhiteSpace(_messageId)) return;
+                    IdMap.TryAdd(_messageId!, this);
+                    _wasKilled = false;
                 }
             }
         }
@@ -82,13 +93,15 @@ namespace AeroltChatServer
                     
                     if (!string.IsNullOrWhiteSpace(_connectId))
                     {
-                        Usernames.Close(_connectId);
+                        Connect.Close(_connectId);
                         IdMap.TryRemove(_connectId!, out _);
+                        _wasKilled = true;
                     }
 
                     _connectId = value;
-                    if (!string.IsNullOrWhiteSpace(_connectId))
-                        IdMap.TryAdd(_connectId!, this);
+                    if (string.IsNullOrWhiteSpace(_connectId)) return;
+                    IdMap.TryAdd(_connectId!, this);
+                    _wasKilled = false;
                 }
             }
         }
@@ -103,11 +116,13 @@ namespace AeroltChatServer
                     {
                         Usernames.Close(_usernameId);
                         IdMap.TryRemove(_usernameId!, out _);
+                        _wasKilled = true;
                     }
 
                     _usernameId = value;
-                    if (!string.IsNullOrWhiteSpace(_usernameId))
-                        IdMap.TryAdd(_usernameId!, this);
+                    if (string.IsNullOrWhiteSpace(_usernameId)) return;
+                    IdMap.TryAdd(_usernameId!, this);
+                    _wasKilled = false;
                 }
                 
             }
@@ -119,10 +134,9 @@ namespace AeroltChatServer
             set
             {
                 _id = value;
-                
-                if (_connectedUsers.ContainsKey(_id)) _connectedUsers[_id].Kill();
+                //if (_connectedUsers.ContainsKey(_id)) _connectedUsers[_id].Kill();
                 _connectedUsers[_id] = this;
-                Database.CreateNewGuid(_id);
+                Database.EnsureNewGuid(_id);
             }
         }
 
@@ -158,16 +172,15 @@ namespace AeroltChatServer
             }
         }
 
-        public void Kill() // Called when any socket is closed;
-        {   // this is exactly what Sessions.CloseSession does
-            if (_wasKilled) return;
-            
-            UsernameId = null;
-            MessageId = null;
-            ConnectId = null;
-            _connectedUsers.TryRemove(Id, out _);
-            
-            _wasKilled = true;
+        public void Kill()
+        {
+            lock (_killedLock)
+            {
+                if (_wasKilled) return;
+                UsernameId = null;
+                MessageId = null;
+                ConnectId = null;
+            }
         }
     }
 

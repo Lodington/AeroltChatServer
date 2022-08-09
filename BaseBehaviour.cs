@@ -7,15 +7,15 @@ namespace AeroltChatServer
 	public class BaseBehaviour : WebSocketBehavior
 	{
 		public WebSocketSessionManager GetSessions() => Sessions; // Dumbass workaround for a protected property?
-		
-		protected override void OnClose(CloseEventArgs e)
-		{
-			UserMeta.PopUserFromId(ID)?.Kill(); // Can be null if killed by another socket already.
-		}
 	}
 	public class BaseBehaviour<T> : BaseBehaviour where T : BaseBehaviour
 	{
 		public static BaseBehaviour<T> Instance;
+
+		protected override void OnClose(CloseEventArgs e)
+		{
+			UserMeta.PopUserFromId(ID)?.Kill();
+		}
 
 		public BaseBehaviour()
 		{

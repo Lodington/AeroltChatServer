@@ -47,7 +47,7 @@ namespace AeroltChatServer
 		public static void Ban(UserMeta endpoint) => _bannedUsers.InsertOne(new BsonDocument("ip", endpoint.Address.ToString()));
 		public static void UnBan(UserMeta endpoint) => _bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.Address.ToString()));
 
-		public static void CreateNewGuid(Guid guid)
+		public static void EnsureNewGuid(Guid guid)
 		{
 			if (guid == default) return;
 			var model = new User { UUID = guid.ToString() };

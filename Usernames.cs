@@ -16,7 +16,6 @@ namespace AeroltChatServer
 		{
 			base.OnClose(e);
 			BroadcastUserList();
-			Sessions.CloseSession(ID);
 		}
 
 		public static void BroadcastUserList()
