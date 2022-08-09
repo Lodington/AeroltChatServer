@@ -31,7 +31,7 @@ namespace AeroltChatServer
 				UserMeta? who = null;
 				if (command.Groups.Count > 2)
 					who = UserMeta.UsersEnumerator.FirstOrDefault(x => x.Username == command.Groups[2].ToString());
-				Commands.InvokeCommand(command.Groups[1].Value, user, who);
+				Commands.InvokeCommand(command.Groups[1].Value.ToLower(), user, who);
 				return;
 			}
                 
