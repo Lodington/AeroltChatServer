@@ -10,48 +10,77 @@ namespace AeroltChatServer
 {
     public class UserMeta
     {
-        private static readonly ConcurrentDictionary<IPAddress, UserMeta> Users =
-            new ConcurrentDictionary<IPAddress, UserMeta>();
+        private static readonly ConcurrentBag<UserMeta> Users = new ConcurrentBag<UserMeta>();
 
-        private static readonly ConcurrentDictionary<Guid, UserMeta> _connectedUsers =
-            new ConcurrentDictionary<Guid, UserMeta>();
+        private static readonly ConcurrentDictionary<IPAddress, string> messageIDQueue = new ConcurrentDictionary<IPAddress, string>();
+        private static readonly ConcurrentDictionary<IPAddress, string> usernamesIDQueue = new ConcurrentDictionary<IPAddress, string>();
+        
+        private static readonly ConcurrentDictionary<string, UserMeta> IdMap = new ConcurrentDictionary<string, UserMeta>();
 
-        private static readonly ConcurrentDictionary<string, UserMeta> IdMap =
-            new ConcurrentDictionary<string, UserMeta>();
-
-        public static IEnumerable<UserMeta> UsersEnumerator => _connectedUsers.Values;
+        public static IEnumerable<UserMeta> UsersEnumerator => Users.ToArray();
         public static IEnumerable<UserMeta> AdminsEnumerator => UsersEnumerator.Where(x => x.IsElevated);
 
-        public static UserMeta GetOrMakeUser(IPAddress address)
+        // Used to pair a connection together, in any ws connection order. Sockets can get mixed up if multiple connections happen too fast from the same ip.
+        #region UserCreation
+        public static UserMeta CreateUser(Guid guid, IPAddress address, string connectId)
         {
-            if (!Users.ContainsKey(address)) Users[address] = new UserMeta(address);
-            var val = Users[address];
+            var user = new UserMeta(guid, address, connectId);
+            if (messageIDQueue.ContainsKey(address) && messageIDQueue.TryRemove(address, out var id)) user.MessageId = id;
+            if (usernamesIDQueue.ContainsKey(address) && usernamesIDQueue.TryRemove(address, out var id2)) user.UsernameId = id2;
+            PruneDuplicateGuids(guid, address);
+            return user;
+        }
+        public static void AddMessageId(IPAddress address, string messageId)
+        {
+            var user = Users.FirstOrDefault(x => Equals(x.Address, address) && x.MessageId == null);
+            if (user != null)
+                user.MessageId = messageId;
+            else
+                messageIDQueue.TryAdd(address, messageId);
+        }
+        public static void AddUsernamesId(IPAddress address, string usernameId)
+        {
+            var user = Users.FirstOrDefault(x => Equals(x.Address, address) && x.UsernameId == null);
+            if (user != null)
+                user.UsernameId = usernameId;
+            else
+                usernamesIDQueue.TryAdd(address, usernameId);
+        }
+        #endregion
+
+        public static UserMeta? GetUserFromSocketId(string id)
+        {
+            IdMap.TryGetValue(id, out var val);
             return val;
         }
-
+        public static void PruneDuplicateGuids(Guid guid, IPAddress address)
+        {
+            foreach (var userMeta in Users.Where(x => x.Id == guid && !Equals(x.Address, address))) userMeta.Kill();
+        }
         public static UserMeta? PopUserFromId(string id)
         {
             IdMap.TryRemove(id, out var val);
             return val;
         }
 
-        private string? _usernameId;
-        private string? _connectId;
-        private string? _messageId;
-
         public IPAddress Address;
-        private bool _wasKilled;
         private Guid _id;
 
         private string? _username;
         private bool? _banned;
         private bool? _elevated;
 
-        private UserMeta(IPAddress ipAddress)
+        private UserMeta(Guid address, IPAddress ipAddress, string connectId)
         {
+            Id = address;
             Address = ipAddress;
+            ConnectId = connectId;
         }
 
+        private string? _usernameId;
+        private string? _connectId;
+        private string? _messageId;
+        private bool _wasKilled;
         public object _messageLock = new object();
         public object _connectLock = new object();
         public object _usernameLock = new object();
@@ -73,13 +102,11 @@ namespace AeroltChatServer
                     {
                         Message.Close(_messageId);
                         IdMap.TryRemove(_messageId!, out _);
-                        _wasKilled = true;
                     }
 
                     _messageId = value;
                     if (string.IsNullOrWhiteSpace(_messageId)) return;
                     IdMap.TryAdd(_messageId!, this);
-                    _wasKilled = false;
                 }
             }
         }
@@ -95,13 +122,11 @@ namespace AeroltChatServer
                     {
                         Connect.Close(_connectId);
                         IdMap.TryRemove(_connectId!, out _);
-                        _wasKilled = true;
                     }
 
                     _connectId = value;
                     if (string.IsNullOrWhiteSpace(_connectId)) return;
                     IdMap.TryAdd(_connectId!, this);
-                    _wasKilled = false;
                 }
             }
         }
@@ -116,13 +141,11 @@ namespace AeroltChatServer
                     {
                         Usernames.Close(_usernameId);
                         IdMap.TryRemove(_usernameId!, out _);
-                        _wasKilled = true;
                     }
 
                     _usernameId = value;
                     if (string.IsNullOrWhiteSpace(_usernameId)) return;
                     IdMap.TryAdd(_usernameId!, this);
-                    _wasKilled = false;
                 }
                 
             }
@@ -134,8 +157,6 @@ namespace AeroltChatServer
             set
             {
                 _id = value;
-                //if (_connectedUsers.ContainsKey(_id)) _connectedUsers[_id].Kill();
-                _connectedUsers[_id] = this;
                 Database.EnsureNewGuid(_id);
             }
         }
@@ -145,7 +166,7 @@ namespace AeroltChatServer
             get => _username ??= Database.GetUsername(Id);
             set
             {
-                _username = value;
+                foreach (var userMeta in Users.Where(x => x.Id == Id)) userMeta._username = value;
                 Database.UpdateUsername(Id, value);
             }
         }
@@ -155,7 +176,7 @@ namespace AeroltChatServer
             get => _elevated ??= Database.IsElevated(Id);
             set
             {
-                _elevated = value;
+                foreach (var userMeta in Users.Where(x => x.Id == Id)) userMeta._elevated = value;
                 Database.UpdateElevated(Id, value);
             }
         }
@@ -164,7 +185,7 @@ namespace AeroltChatServer
             get => _banned ??= Database.IsBanned(this);
             set
             {
-                _banned = value;
+                foreach (var userMeta in Users.Where(x => x.Id == Id)) userMeta._banned = value;
                 if (value)
                     Database.Ban(this);
                 else
@@ -177,6 +198,7 @@ namespace AeroltChatServer
             lock (_killedLock)
             {
                 if (_wasKilled) return;
+                _wasKilled = true;
                 UsernameId = null;
                 MessageId = null;
                 ConnectId = null;

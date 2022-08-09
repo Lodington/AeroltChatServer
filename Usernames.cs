@@ -8,7 +8,7 @@ namespace AeroltChatServer
 	{
 		protected override void OnOpen()
 		{
-			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).UsernameId = ID;
+			UserMeta.AddUsernamesId(Context.UserEndPoint.Address, ID);
 			BroadcastUserList(); // I worry about the users username not being added yet when broadcasting here.
 		}
 		

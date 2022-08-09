@@ -20,7 +20,7 @@ namespace AeroltChatServer
 		protected override void OnMessage(MessageEventArgs e)
 		{
 			if (e.Data == null) return;
-			var user = UserMeta.GetOrMakeUser(Context.UserEndPoint.Address);
+			var user = UserMeta.GetUserFromSocketId(ID);
 			if (!user.IsElevated && user.IsBanned) return;
                 
 			Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + user.Username + " -> " + e.Data);
@@ -46,7 +46,7 @@ namespace AeroltChatServer
 		
 		protected override void OnOpen()
 		{
-			UserMeta.GetOrMakeUser(Context.UserEndPoint.Address).MessageId = ID;
+			UserMeta.AddMessageId(Context.UserEndPoint.Address, ID);
 		}
 	}
 }
