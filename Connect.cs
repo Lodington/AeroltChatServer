@@ -16,7 +16,7 @@ namespace AeroltChatServer
 			var userName = "";
 			if (!Guid.TryParse(e.Data, out var guid))
 			{
-				var rootName = Helpers.FilterText(e.Data);
+				var rootName = Helpers.FilterText(e.Data).Trim();
 				userName = rootName;
 				var rand = new Random();
 				while (Database.ContainsUsername(userName))
