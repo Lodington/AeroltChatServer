@@ -21,6 +21,14 @@ namespace AeroltChatServer
 		{
 			Instance = this;
 		}
+		
+		public static void SendTo(string id, string message)
+		{
+			if (Instance.GetSessions().TryGetSession(id, out var inst))
+			{
+				inst.Context.WebSocket.Send(message);
+			}
+		}
 		public static void Broadcast(string message)
 		{
 			Instance.GetSessions().Broadcast(message);

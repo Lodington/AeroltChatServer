@@ -33,10 +33,15 @@ namespace AeroltChatServer
 
         private bool KillInvalidUser()
         {
-            if (!string.IsNullOrEmpty(Username)) return false;
-            Kill(); // Kill connections that have a valid guid but didnt supply a username.
-            Database.DropGuid(_id);
-            return true;
+            if (string.IsNullOrEmpty(Username))
+            {
+                Connect.SendTo(ConnectId, "Invalid Username");
+                Kill(); // Kill connections that have a valid guid but didnt supply a username.
+                Database.DropGuid(_id);
+                return true;
+            }
+
+            return false;
         }
 
         public static void AddMessageId(IPAddress address, string messageId)
