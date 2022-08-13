@@ -82,11 +82,11 @@ namespace AeroltChatServer
         private UserMeta(Guid address, IPAddress ipAddress, string connectId, string userName)
         {
             Users.Add(this);
-            if (!string.IsNullOrWhiteSpace(userName))
-                Username = userName;
             Id = address;
             Address = ipAddress;
             ConnectId = connectId;
+            if (!string.IsNullOrWhiteSpace(userName))
+                Username = userName;
         }
 
         private string? _usernameId;
