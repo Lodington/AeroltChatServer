@@ -27,7 +27,6 @@ namespace AeroltChatServer
             var user = new UserMeta(guid, address, connectId, userName);
             if (messageIDQueue.ContainsKey(address) && messageIDQueue.TryRemove(address, out var id)) user.MessageId = id;
             if (usernamesIDQueue.ContainsKey(address) && usernamesIDQueue.TryRemove(address, out var id2)) user.UsernameId = id2;
-            Users.Add(user);
             if (user.KillInvalidUser()) return;
             PruneDuplicateGuids(guid, address);
         }
@@ -82,6 +81,7 @@ namespace AeroltChatServer
 
         private UserMeta(Guid address, IPAddress ipAddress, string connectId, string userName)
         {
+            Users.Add(this);
             if (!string.IsNullOrWhiteSpace(userName))
                 Username = userName;
             Id = address;
