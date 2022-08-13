@@ -35,7 +35,7 @@ namespace AeroltChatServer
         private bool KillInvalidUser()
         {
             if (string.IsNullOrEmpty(Username))
-            {
+            { 
                 Connect.SendTo(ConnectId, "Invalid Username");
                 Kill(); // Kill connections that have a valid guid but didnt supply a username.
                 Database.DropGuid(_id);
@@ -84,6 +84,7 @@ namespace AeroltChatServer
         private string? _username;
         private bool? _banned;
         private bool? _elevated;
+        private bool? _admin;
 
         private UserMeta(Guid address, IPAddress ipAddress, string connectId, string userName)
         {
@@ -198,6 +199,16 @@ namespace AeroltChatServer
                 Database.UpdateElevated(Id, value);
             }
         }
+        public bool IsAdmin
+        {
+            get => _admin ??= Database.IsAdmin(Id);
+            set
+            {
+                foreach (var userMeta in Users.Where(x => x.Id == Id)) userMeta._admin = value;
+                Database.UpdateElevated(Id, value);
+            }
+        }
+        
         public bool IsBanned
         {
             get => _banned ??= Database.IsBanned(this);
@@ -234,7 +245,9 @@ namespace AeroltChatServer
         public string IpAddress { get; set; }
         public DateTime LastRequest { get; set; }
         public DateTime CoolDownTime { get; set; }
+        public bool IsAdmin { get; set; }
         public bool IsElevated { get; set; }
         public bool IsBanned { get; set; }
+       
     }
 }

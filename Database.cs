@@ -59,9 +59,10 @@ namespace AeroltChatServer
 
 		public static void UpdateUsername(Guid guid, string username) => _users.UpdateOne(x => x.UUID == guid.ToString(), Builders<User>.Update.Set(x => x.UserName, username));
 		public static string GetUsername(Guid id) => _users.FindSync(x => x.UUID == id.ToString()).FirstOrDefault()?.UserName;
-
 		public static bool IsElevated(Guid id) => _users.FindSync(x => x.UUID == id.ToString()).FirstOrDefault()?.IsElevated ?? false;
+		public static bool IsAdmin(Guid id) => _users.FindSync(x => x.UUID == id.ToString()).FirstOrDefault()?.IsAdmin ?? false;
 		public static void UpdateElevated(Guid id, bool value) => _users.UpdateOne(x => x.UUID == id.ToString(), Builders<User>.Update.Set(x => x.IsElevated, value));
+		public static void UpdateAdmin(Guid id, bool value) => _users.UpdateOne(x => x.UUID == id.ToString(), Builders<User>.Update.Set(x => x.IsAdmin, value));
 
 		public static void DropGuid(Guid id)
 		{

@@ -9,14 +9,33 @@ namespace AeroltChatServer
 		private static Dictionary<string, Func<UserMeta, UserMeta?, bool>> _commandMap = new Dictionary<string, Func<UserMeta, UserMeta?, bool>>
 		{
 			{ "ban", Ban },
-			{ "unban", Unban }
+			{ "unban", Unban },
+			{ "elevate", Elevate },
+			{ "admin", Admin }
 		};
 
+		private static bool Admin(UserMeta invoker, UserMeta? target)
+		{
+			if (!invoker.IsAdmin || target is null) return false;
+			target.IsAdmin = !target.IsAdmin;
+			target.IsElevated |= target.IsAdmin;
+			Message.BroadcastToAdmins($"<color=green>[ Server ]</color> => <color=yellow><b>User {target.Username}s admin status has changed to {target.IsAdmin}</b></color>");
+			return true;
+		}
+
+		private static bool Elevate(UserMeta invoker, UserMeta? target)
+		{
+			if (!invoker.IsAdmin || target is null) return false;
+			target.IsElevated = !target.IsElevated;
+			Message.BroadcastToAdmins($"<color=green>[ Server ]</color> => <color=yellow><b>User {target.Username}s elevation has changed to {target.IsElevated}</b></color>");
+			return true;
+		}
+		
 		private static bool Unban(UserMeta invoker, UserMeta? target)
 		{
 			if (!invoker.IsElevated || target is null || !target.IsBanned) return false;
 			target.IsBanned = false;
-			Message.BroadcastToAdmins($"<color=yellow><b>User UnBanned {target.Username}</b></color>");
+			Message.BroadcastToAdmins($"<color=green>[ Server ]</color> => <color=yellow><b>User UnBanned {target.Username}</b></color>");
 			return true;
 		}
 		
@@ -24,7 +43,7 @@ namespace AeroltChatServer
 		{
 			if (!invoker.IsElevated || target is null || target.IsBanned) return false;
 			target.IsBanned = true;
-			Message.BroadcastToAdmins($"<color=red><b>User Banned {target.Username}</b></color>");
+			Message.BroadcastToAdmins($"<color=green>[ Server ]</color> => <color=red><b>User Banned {target.Username}</b></color>");
 			return true;
 		}
 

@@ -9,6 +9,7 @@ namespace AeroltChatServer
 		{
 			if (e.Data.IsNullOrEmpty())
 			{
+				Console.WriteLine("Users connected but with null UUID or Name");
 				return;
 			}
 
