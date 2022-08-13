@@ -9,13 +9,6 @@ namespace AeroltChatServer
 		protected override void OnOpen()
 		{
 			UserMeta.AddUsernamesId(Context.UserEndPoint.Address, ID);
-			BroadcastUserList(); // I worry about the users username not being added yet when broadcasting here.
-		}
-		
-		protected override void OnClose(CloseEventArgs e)
-		{
-			base.OnClose(e);
-			BroadcastUserList();
 		}
 
 		public static void BroadcastUserList()

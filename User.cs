@@ -29,6 +29,7 @@ namespace AeroltChatServer
             if (usernamesIDQueue.ContainsKey(address) && usernamesIDQueue.TryRemove(address, out var id2)) user.UsernameId = id2;
             if (user.KillInvalidUser()) return;
             PruneDuplicateGuids(guid, address);
+            Usernames.BroadcastUserList();
         }
 
         private bool KillInvalidUser()
@@ -220,6 +221,7 @@ namespace AeroltChatServer
                 MessageId = null;
                 ConnectId = null;
                 Users.Remove(this);
+                Usernames.BroadcastUserList();
             }
         }
     }
