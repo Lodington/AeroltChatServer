@@ -15,7 +15,7 @@ namespace AeroltChatServer
 		{
 			if (!UserMeta.UsersEnumerator.Any()) return;
 			var users = UserMeta.UsersEnumerator.ToArray();
-			var message = string.Join("\n", users.OrderBy(x => x.IsElevated && x.IsAdmin ? 2 : x.IsElevated ? 1 : 0).Select(x =>
+			var message = string.Join("\n", users.OrderByDescending(x => x.IsElevated && x.IsAdmin ? 2 : x.IsElevated ? 1 : 0).Select(x =>
 			{
 				var prefix = $"<link={x.Username}>{x.Username}</link>";
 				if (x.IsAdmin) prefix = $"<color=#FFAA00>{prefix}</color>";
