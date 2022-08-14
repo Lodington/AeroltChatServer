@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using MongoDB.Bson;
+using WebSocketSharp;
 
 namespace AeroltChatServer
 {
@@ -30,7 +31,7 @@ namespace AeroltChatServer
             if (usernamesIDQueue.ContainsKey(address) && usernamesIDQueue.TryRemove(address, out var id2)) user.UsernameId = id2;
             if (user.KillInvalidUser()) return;
             PruneDuplicateGuids(guid, address);
-            Usernames.BroadcastUserList();
+            if (!user.UsernameId.IsNullOrEmpty()) Usernames.BroadcastUserList();
         }
 
         private bool KillInvalidUser()
@@ -58,7 +59,10 @@ namespace AeroltChatServer
         {
             var user = Users.FirstOrDefault(x => Equals(x.Address, address) && x.UsernameId == null);
             if (user != null)
+            {
                 user.UsernameId = usernameId;
+                Usernames.BroadcastUserList();
+            }
             else
                 usernamesIDQueue.TryAdd(address, usernameId);
         }

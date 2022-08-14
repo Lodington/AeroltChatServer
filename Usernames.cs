@@ -23,7 +23,7 @@ namespace AeroltChatServer
 				if (x.IsAdmin) prefix = $"<color=#FFAA00>{prefix}</color>";
 				if (x.IsElevated) prefix = $"<color=#08a2f7>{prefix}</color>";
 				return prefix;
-			}));
+			}).Distinct());
 			Broadcast(message);
 		}
 	}
