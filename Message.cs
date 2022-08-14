@@ -44,6 +44,7 @@ namespace AeroltChatServer
 			var prefix = $"[{user.Username}]";
 			if (user.IsAdmin) prefix = $"<color=#FFAA00>{prefix}</color>";
 			if (user.IsElevated) prefix = $"<color=#08a2f7>{prefix}</color>";
+			
 			Sessions.Broadcast(prefix + " -> " + text);
 		}
 		

@@ -8,6 +8,8 @@ namespace AeroltChatServer
 	{
 		protected override void OnOpen()
 		{
+			//todo Dispose of endpoint properly? https://stackoverflow.com/questions/29944233/system-objectdisposedexception-throwed-on-websocket-communication
+			//todo this too https://stackoverflow.com/questions/4812686/closing-websocket-correctly-html5-javascript
 			UserMeta.AddUsernamesId(Context.UserEndPoint.Address, ID);
 		}
 

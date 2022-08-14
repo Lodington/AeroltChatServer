@@ -205,7 +205,7 @@ namespace AeroltChatServer
             set
             {
                 foreach (var userMeta in Users.Where(x => x.Id == Id)) userMeta._admin = value;
-                Database.UpdateElevated(Id, value);
+                Database.UpdateAdmin(Id, value);
             }
         }
         
