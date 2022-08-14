@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using MongoDB.Bson;
 
 namespace AeroltChatServer
@@ -97,15 +98,14 @@ namespace AeroltChatServer
             if (!string.IsNullOrWhiteSpace(userName))
                 Username = userName;
         }
-
+        
+        public int connectedSockets;
         private string? _usernameId;
         private string? _connectId;
         private string? _messageId;
-        private bool _wasKilled;
         public object _messageLock = new object();
         public object _connectLock = new object();
         public object _usernameLock = new object();
-        private object _killedLock = new object();
 
         public string? MessageId
         {
@@ -127,6 +127,7 @@ namespace AeroltChatServer
 
                     _messageId = value;
                     if (string.IsNullOrWhiteSpace(_messageId)) return;
+                    Interlocked.Increment (ref connectedSockets);
                     IdMap.TryAdd(_messageId!, this);
                 }
             }
@@ -147,6 +148,7 @@ namespace AeroltChatServer
 
                     _connectId = value;
                     if (string.IsNullOrWhiteSpace(_connectId)) return;
+                    Interlocked.Increment (ref connectedSockets);
                     IdMap.TryAdd(_connectId!, this);
                 }
             }
@@ -166,6 +168,7 @@ namespace AeroltChatServer
 
                     _usernameId = value;
                     if (string.IsNullOrWhiteSpace(_usernameId)) return;
+                    Interlocked.Increment (ref connectedSockets);
                     IdMap.TryAdd(_usernameId!, this);
                 }
                 
@@ -226,15 +229,10 @@ namespace AeroltChatServer
 
         public void Kill()
         {
-            lock (_killedLock)
-            {
-                if (_wasKilled) return;
+            if (Interlocked.Decrement(ref connectedSockets) > 1) return;
                 
-                if (Connect.IsAlive(ConnectId) + Message.IsAlive(MessageId) + Usernames.IsAlive(UsernameId) < 2) return;
-                _wasKilled = true;
-                Users.Remove(this);
-                Usernames.BroadcastUserList();
-            }
+            Users.Remove(this);
+            Usernames.BroadcastUserList();
         }
     }
 
