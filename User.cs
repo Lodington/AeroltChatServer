@@ -70,6 +70,8 @@ namespace AeroltChatServer
         }
         public static void PruneDuplicateGuids(Guid guid, IPAddress address)
         {
+            return;
+            //TODO fix this shit: throws collection was modified
             foreach (var userMeta in Users.Where(x => x.Id == guid && !Equals(x.Address, address))) userMeta.Kill();
         }
         public static UserMeta? PopUserFromId(string id)
@@ -227,10 +229,8 @@ namespace AeroltChatServer
             lock (_killedLock)
             {
                 if (_wasKilled) return;
+                if (Connect.IsAlive(ConnectId) || Message.IsAlive(MessageId) || Usernames.IsAlive(UsernameId)) return;
                 _wasKilled = true;
-                UsernameId = null;
-                MessageId = null;
-                ConnectId = null;
                 Users.Remove(this);
                 Usernames.BroadcastUserList();
             }
