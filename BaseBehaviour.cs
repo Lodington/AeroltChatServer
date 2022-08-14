@@ -14,7 +14,7 @@ namespace AeroltChatServer
 
 		protected override void OnClose(CloseEventArgs e)
 		{
-			UserMeta.PopUserFromId(ID)?.Kill();
+			UserMeta.PopUserFromId(ID);
 		}
 
 		public BaseBehaviour()

@@ -12,7 +12,7 @@ namespace AeroltChatServer
 {
     public class UserMeta
     {
-        private static readonly List<UserMeta> Users = new List<UserMeta>();
+        public static readonly List<UserMeta> Users = new List<UserMeta>();
 
         private static readonly ConcurrentDictionary<IPAddress, string> messageIDQueue = new ConcurrentDictionary<IPAddress, string>();
         private static readonly ConcurrentDictionary<IPAddress, string> usernamesIDQueue = new ConcurrentDictionary<IPAddress, string>();
@@ -233,10 +233,10 @@ namespace AeroltChatServer
 
         public void Kill()
         {
-            if (Interlocked.Decrement(ref connectedSockets) > 1) return;
+            //if (Interlocked.Decrement(ref connectedSockets) > 1) return;
                 
-            Users.Remove(this);
-            Usernames.BroadcastUserList();
+           // Users.Remove(this);
+            //Usernames.BroadcastUserList();
         }
     }
 

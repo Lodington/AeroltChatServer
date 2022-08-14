@@ -11,8 +11,16 @@ namespace AeroltChatServer
 			{ "ban", Ban },
 			{ "unban", Unban },
 			{ "elevate", Elevate },
+			{ "UU", UpdateUsers },
 			{ "admin", Admin }
 		};
+
+		private static bool UpdateUsers(UserMeta invoker, UserMeta? target)
+		{
+			Usernames.Broadcast("Test");
+			Message.BroadcastToAdmins($"<color=green>[ Server ]</color> => <color=yellow><b>Sending Test to usernames</b></color>");
+			return true;
+		}
 
 		private static bool Admin(UserMeta invoker, UserMeta? target)
 		{
@@ -23,6 +31,8 @@ namespace AeroltChatServer
 			return true;
 		}
 
+	
+		
 		private static bool Elevate(UserMeta invoker, UserMeta? target)
 		{
 			if (!invoker.IsAdmin || target is null) return false;

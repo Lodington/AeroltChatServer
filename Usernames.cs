@@ -11,6 +11,14 @@ namespace AeroltChatServer
 			//todo Dispose of endpoint properly? https://stackoverflow.com/questions/29944233/system-objectdisposedexception-throwed-on-websocket-communication
 			//todo this too https://stackoverflow.com/questions/4812686/closing-websocket-correctly-html5-javascript
 			UserMeta.AddUsernamesId(Context.UserEndPoint.Address, ID);
+			BroadcastUserList();
+		}
+
+		protected override void OnClose(CloseEventArgs e)
+		{
+			var user = UserMeta.PopUserFromId(ID);
+			UserMeta.Users.Remove(user);
+			BroadcastUserList();
 		}
 
 		public static void BroadcastUserList()
