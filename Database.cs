@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -47,14 +48,18 @@ namespace AeroltChatServer
 		public static void Ban(UserMeta endpoint) => _bannedUsers.InsertOne(new BsonDocument("ip", endpoint.Address.ToString()));
 		public static void UnBan(UserMeta endpoint) => _bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.Address.ToString()));
 
-		public static bool EnsureNewGuid(Guid guid)
+		public static bool EnsureNewGuid(Guid guid, IPAddress currentIp)
 		{
 			if (guid == default) return true;
 			var model = new User { UUID = guid.ToString() };
-			if (_users.CountDocuments(x => x.UUID == guid.ToString(), new CountOptions() {Limit = 1}) != 0)
-				return false;
-			_users.InsertOne(model);
-			return true;
+			var succeeded = false;
+			if (_users.CountDocuments(x => x.UUID == guid.ToString(), new CountOptions() {Limit = 1}) == 0)
+			{
+				_users.InsertOne(model);
+				succeeded = true;
+			}
+			_users.UpdateOne(x => x.UUID == guid.ToString(), Builders<User>.Update.Set(x => x.IpAddress, currentIp.ToString()).Set(x => x.LastRequest, DateTime.Now));
+			return succeeded;
 		}
 
 		public static void UpdateUsername(Guid guid, string username) => _users.UpdateOne(x => x.UUID == guid.ToString(), Builders<User>.Update.Set(x => x.UserName, username));
