@@ -229,7 +229,8 @@ namespace AeroltChatServer
             lock (_killedLock)
             {
                 if (_wasKilled) return;
-                if (Connect.IsAlive(ConnectId) || Message.IsAlive(MessageId) || Usernames.IsAlive(UsernameId)) return;
+                
+                if (Connect.IsAlive(ConnectId) + Message.IsAlive(MessageId) + Usernames.IsAlive(UsernameId) < 2) return;
                 _wasKilled = true;
                 Users.Remove(this);
                 Usernames.BroadcastUserList();

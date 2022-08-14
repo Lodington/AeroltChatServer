@@ -22,7 +22,7 @@ namespace AeroltChatServer
 			Instance = this;
 		}
 
-		public static bool IsAlive(string id) => Instance.GetSessions().ActiveIDs.Contains(id);
+		public static int IsAlive(string id) => Instance.GetSessions().ActiveIDs.Contains(id) ? 1 : 0;
 		public static void SendTo(string id, string message)
 		{
 			if (Instance.GetSessions().TryGetSession(id, out var inst))
