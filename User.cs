@@ -96,8 +96,8 @@ namespace AeroltChatServer
         private UserMeta(Guid address, IPAddress ipAddress, string connectId, string userName)
         {
             Users.Add(this);
-            Id = address;
             Address = ipAddress;
+            Id = address;
             ConnectId = connectId;
             if (!string.IsNullOrWhiteSpace(userName))
                 Username = userName;
