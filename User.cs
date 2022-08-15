@@ -185,7 +185,7 @@ namespace AeroltChatServer
             set
             {
                 _id = value;
-                Database.EnsureNewGuid(_id, Address);
+                Database.EnsureNewGuid(_id);
             }
         }
 
