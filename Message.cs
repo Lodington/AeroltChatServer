@@ -38,14 +38,10 @@ namespace AeroltChatServer
 			}
                 
 			var text = e.Data;
-			if (!user.IsElevated) text = $"<noparse>{FilterText(text.Replace("<noparse>", "").Replace("</noparse>", ""))}</noparse>";
-			text = LinkRegex.Replace(text, match => user.IsElevated ? $"<#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color>" : $"</noparse><#7f7fe5><u><link=\"{match.Value.Substring(1)}\">Join My Lobby!</link></u></color><noparse>");
-                
-			var prefix = $"[{user.Username}]";
-			if (user.IsAdmin) prefix = $"<color=#FFAA00>{prefix}</color>";
-			if (user.IsElevated) prefix = $"<color=#08a2f7>{prefix}</color>";
-			
-			Sessions.Broadcast(prefix + " -> " + text);
+			if (!user.IsElevated) text = FilterText(text).StripTextMeshProFormatting();
+			text = LinkRegex.Replace(text, match => match.Value.Substring(1).MarkLink("Join My Lobby!", user.IsElevated));
+
+			Sessions.Broadcast($"[{user.GetDressedUsername()}] -> " + text);
 		}
 		
 		protected override void OnOpen()
