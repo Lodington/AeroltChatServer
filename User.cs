@@ -191,12 +191,7 @@ namespace AeroltChatServer
 
         public string Username
         {
-            get
-            {
-                _username ??= Database.GetUsername(Id);
-                _username = _username.StripTextMeshProFormatting();
-                return _username;
-            }
+            get => _username ??= Database.GetUsername(Id);
             set
             {
                 foreach (var userMeta in Users.Where(x => x.Id == Id)) userMeta._username = value;
@@ -242,14 +237,6 @@ namespace AeroltChatServer
                 
            // Users.Remove(this);
             //Usernames.BroadcastUserList();
-        }
-
-        public string GetDressedUsername()
-        {
-            var prefix = Username;
-            if (IsAdmin) prefix = $"<color=#FFAA00>{prefix}</color>";
-            if (IsElevated) prefix = $"<color=#08a2f7>{prefix}</color>";
-            return prefix;
         }
     }
 
