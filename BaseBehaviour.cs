@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 
@@ -12,17 +13,25 @@ namespace AeroltChatServer
 	{
 		public static BaseBehaviour<T> Instance;
 
-		protected override void OnClose(CloseEventArgs e)
+		protected override void OnMessage(MessageEventArgs e)
 		{
-			UserMeta.PopUserFromId(ID)?.Kill();
+			base.OnMessage(e);
+			if (e.IsPong && Guid.TryParse(e.Data, out var id)) Context.WebSocket.guid = id;
 		}
 
 		public BaseBehaviour()
 		{
 			Instance = this;
+			EmitOnPong = true;
 		}
 
-		public static int IsAlive(string id) => Instance.GetSessions().ActiveIDs.Contains(id) ? 1 : 0;
+		public static bool IsAlive(Guid id)
+		{
+			var sessions = Instance.GetSessions();
+			return sessions.ActiveIDs.Any(x => sessions.TryGetSession(x, out var session) && session.Context.WebSocket.guid == id);
+		}
+
+		[Obsolete]
 		public static void SendTo(string id, string message)
 		{
 			if (Instance.GetSessions().TryGetSession(id, out var inst))
@@ -34,6 +43,7 @@ namespace AeroltChatServer
 		{
 			Instance.GetSessions().Broadcast(message);
 		}
+		[Obsolete]
 		public static void Close(string id)
 		{
 			var sessions = Instance.GetSessions();

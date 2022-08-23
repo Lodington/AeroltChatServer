@@ -34,7 +34,7 @@ namespace AeroltChatServer
 		private static bool Unban(UserMeta invoker, UserMeta? target)
 		{
 			if (!invoker.IsElevated || target is null || !target.IsBanned) return false;
-			target.IsBanned = false;
+			//target.IsBanned = false; TODO fix this shit
 			Message.BroadcastToAdmins($"<color=green>[ Server ]</color> => <color=yellow><b>User UnBanned {target.Username}</b></color>");
 			return true;
 		}
@@ -42,7 +42,7 @@ namespace AeroltChatServer
 		private static bool Ban(UserMeta invoker, UserMeta? target)
 		{
 			if (!invoker.IsElevated || target is null || target.IsBanned) return false;
-			target.IsBanned = true;
+			// target.IsBanned = true; TODO and this shit
 			Message.BroadcastToAdmins($"<color=green>[ Server ]</color> => <color=red><b>User Banned {target.Username}</b></color>");
 			return true;
 		}

@@ -43,12 +43,12 @@ namespace AeroltChatServer
 			return targets.Any() ? targets.First() : null;
 		}
 
-		public static bool IsBanned(UserMeta endpoint) => _bannedUsers.Find(new BsonDocument("ip", endpoint.Address.ToString())).Any();
+		public static bool IsBanned(IPAddress endpoint) => _bannedUsers.Find(new BsonDocument("ip", endpoint.Address.ToString())).Any();
 		// TODO test for existing ips banned
-		public static void Ban(UserMeta endpoint) => _bannedUsers.InsertOne(new BsonDocument("ip", endpoint.Address.ToString()));
-		public static void UnBan(UserMeta endpoint) => _bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.Address.ToString()));
+		public static void Ban(IPAddress endpoint) => _bannedUsers.InsertOne(new BsonDocument("ip", endpoint.Address.ToString()));
+		public static void UnBan(IPAddress endpoint) => _bannedUsers.DeleteOne(new BsonDocument("ip", endpoint.Address.ToString()));
 
-		public static bool EnsureNewGuid(Guid guid, IPAddress currentIp)
+		public static bool EnsureNewGuid(Guid guid)
 		{
 			if (guid == default) return true;
 			var model = new User { UUID = guid.ToString() };
@@ -58,7 +58,7 @@ namespace AeroltChatServer
 				_users.InsertOne(model);
 				succeeded = true;
 			}
-			_users.UpdateOne(x => x.UUID == guid.ToString(), Builders<User>.Update.Set(x => x.IpAddress, currentIp.ToString()).Set(x => x.LastRequest, DateTime.Now));
+			_users.UpdateOne(x => x.UUID == guid.ToString(), Builders<User>.Update.Set(x => x.LastRequest, DateTime.Now));
 			return succeeded;
 		}
 
