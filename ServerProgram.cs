@@ -26,7 +26,9 @@ namespace AeroltChatServer
 			server.AddWebSocketService<Message>("/Message");
 			server.AddWebSocketService<Usernames>("/Usernames");
 			server.AddWebSocketService<Connect>("/Connect");
-			
+
+			server.KeepClean = true;
+
 			server.Start();
 			
 			Console.WriteLine($"Server started on {ip} listening on port {port}...");

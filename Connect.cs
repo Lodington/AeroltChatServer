@@ -7,6 +7,7 @@ namespace AeroltChatServer
 	{
 		protected override void OnMessage(MessageEventArgs e)
 		{
+			base.OnMessage(e);
 			if (e.Data.IsNullOrEmpty())
 			{
 				Console.WriteLine("Users connected but with null UUID or Name");
@@ -26,7 +27,9 @@ namespace AeroltChatServer
 
 				guid = Guid.NewGuid();
 			}
-			UserMeta.CreateUser(guid, Context.UserEndPoint.Address, ID, userName);
+
+			var user = UserMeta.GetOrCreateUserFromGuid(guid);
+			if (!string.IsNullOrWhiteSpace(userName)) user.Username = userName;
 			//if (!user.IsElevated && user.IsBanned) user.Kill(); disallow banned people to connect?
 			Send(guid.ToString());
 		}

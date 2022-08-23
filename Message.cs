@@ -11,17 +11,17 @@ namespace AeroltChatServer
 	{
 		public static void BroadcastToAdmins(string message)
 		{
-			
-			var admins = UserMeta.AdminsEnumerator.Select(x => x.MessageId); ;
-			foreach (var userMeta in Instance.GetSessions().Sessions.Where(x => admins.Contains(x.ID))) userMeta.Context.WebSocket.Send(message);
+			var admins = UserMeta.AdminsEnumerator.Select(x => x.Id);
+			foreach (var userMeta in Instance.GetSessions().Sessions.Where(x => admins.Contains(x.Context.WebSocket.guid))) userMeta.Context.WebSocket.Send(message);
 		}
 		
 		public static Regex LinkRegex = new Regex(@"(#\d+)");
 		public static Regex CommandRegex = new Regex(@"\$\$(\w+) ?(.*)"); // Commands cannot have non-word characters in them, like @
 		protected override void OnMessage(MessageEventArgs e)
 		{
+			base.OnMessage(e);
 			if (e.Data == null) return;
-			var user = UserMeta.GetUserFromSocketId(ID);
+			var user = UserMeta.GetOrCreateUserFromGuid(Context.WebSocket.guid);
 			var isBanned = user?.IsBanned ?? false ? " (Banned)" : "";
 			var isElevated = user?.IsElevated ?? false ? " *" : "";
 			Console.WriteLine($"[{DateTime.Now:HH:mm:ss}]{isBanned}{isElevated} {user?.Username ?? "Unknown"} -> {e.Data}");
@@ -46,11 +46,6 @@ namespace AeroltChatServer
 			if (user.IsElevated) prefix = $"<color=#08a2f7>{prefix}</color>";
 			
 			Sessions.Broadcast(prefix + " -> " + text);
-		}
-		
-		protected override void OnOpen()
-		{
-			UserMeta.AddMessageId(Context.UserEndPoint.Address, ID);
 		}
 	}
 }
