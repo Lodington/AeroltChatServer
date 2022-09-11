@@ -42,12 +42,14 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="AssetBundle.cs" />
         <Compile Include="BaseBehaviour.cs" />
         <Compile Include="Censor.cs" />
         <Compile Include="Commands.cs" />
         <Compile Include="Connect.cs" />
         <Compile Include="Database.cs" />
         <Compile Include="Helpers.cs" />
+        <Compile Include="HttpServer.cs" />
         <Compile Include="Message.cs" />
         <Compile Include="ProfanityBase.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />

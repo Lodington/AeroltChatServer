@@ -12,7 +12,7 @@ namespace AeroltChatServer
 	public class BaseBehaviour<T> : BaseBehaviour where T : BaseBehaviour
 	{
 		public static BaseBehaviour<T> Instance;
-
+		
 		protected override void OnMessage(MessageEventArgs e)
 		{
 			base.OnMessage(e);
