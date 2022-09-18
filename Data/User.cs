@@ -21,7 +21,6 @@ namespace AeroltChatServer.Data
         }
         
         private Guid _id;
-
         private string? _username;
         private bool? _banned;
         private bool? _elevated;
@@ -31,7 +30,6 @@ namespace AeroltChatServer.Data
             Id = webSocketGuid;
             Users[Id] = this;
         }
-        
         public Guid Id
         {
             get => _id;

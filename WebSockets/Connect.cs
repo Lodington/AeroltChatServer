@@ -11,7 +11,7 @@ namespace AeroltChatServer.WebSockets
 			base.OnMessage(e);
 			if (e.Data.IsNullOrEmpty())
 			{
-				Console.WriteLine("Users connected but with null UUID or Name");
+				Console.WriteLine($"Users connected but with null UUID or Name ({e.Data})");
 				return;
 			}
 

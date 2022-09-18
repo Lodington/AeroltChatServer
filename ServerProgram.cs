@@ -13,23 +13,19 @@ namespace AeroltChatServer
 		public static void Main(string[] args)
 		{
 			var ip = IPAddress.Any;
-			var WebSocketServerPort = 5001;
 			var httpServerPort = 5000;
-
-			var connectionString = File.ReadAllText("mongoconnectionstring.txt");
-			Database.Init(connectionString);
+			var WebSocketServerPort = 5001;
+			
+			Database.Init(InitDatabase("mongoconnectionstring.txt"));
 
 			var server = new WebSocketServer(WebSocketServerPort) {KeepClean = true};
-
-			server.Log.Level = LogLevel.Trace;
-			
 			server.AddWebSocketService<Connect>("/Connect");
 			server.AddWebSocketService<Message>("/Message");
 			server.AddWebSocketService<AssetBundle>("/AssetBundle");
-
+			server.Log.Level = LogLevel.Info;
 			server.Start();
 			
-			new HttpServer().Start(httpServerPort);
+			new HttpServer().Start("localhost","httpServerPort");
 
 			Console.WriteLine($"Server Websocket server started on {ip} listening on port {WebSocketServerPort}...");
 			Console.WriteLine($"Server HTTP server started on {ip} listening on port {httpServerPort}...");
@@ -38,7 +34,19 @@ namespace AeroltChatServer
 			
 			server.Stop();
 		}
-		
+
+		public static string InitDatabase(string path)
+		{
+			if (!File.Exists(path))
+			{
+				Console.WriteLine("Please input your Mongo Connection string");
+				var input = Console.ReadLine();
+				if (string.IsNullOrEmpty(input))
+					throw new NullReferenceException("Cant have a null or empty connection string");
+				return input;
+			}
+			return File.ReadAllText(path);
+		}
 		
 	}
 }

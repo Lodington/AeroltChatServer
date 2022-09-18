@@ -9,11 +9,13 @@ namespace AeroltChatServer
     public class HttpServer
     {
         private HttpListener _listener;
-
-        public void Start(int port)
+        private string AssetBundlePath = "public/aeroltbundle";
+        
+        
+        public void Start(string ip,string port)
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add($"http://localhost:{port.ToString()}/");
+            _listener.Prefixes.Add($"http://{ip}:{port}/");
             _listener.Start();
             Receive();
         }
@@ -42,7 +44,7 @@ namespace AeroltChatServer
         {
             using HttpListenerResponse resp = ctx.Response;
             
-            byte[] buf = File.ReadAllBytes("public/aeroltbundle");
+            byte[] buf = File.ReadAllBytes(AssetBundlePath);
             resp.ContentLength64 = buf.Length;
             using Stream ros = resp.OutputStream;
             ros.Write(buf, 0, buf.Length);
