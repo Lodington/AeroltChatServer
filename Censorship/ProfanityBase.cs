@@ -1,4 +1,4 @@
-﻿namespace AeroltChatServer
+﻿namespace AeroltChatServer.Censorship
 {
     public class ProfanityBase
     {

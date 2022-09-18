@@ -1,6 +1,7 @@
 ﻿using System.Linq;
+using AeroltChatServer.Data;
 
-namespace AeroltChatServer
+namespace AeroltChatServer.WebSockets
 {
 	public class Usernames : BaseBehaviour<Usernames>
 	{

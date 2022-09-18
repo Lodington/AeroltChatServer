@@ -1,7 +1,8 @@
 ﻿using System;
+using AeroltChatServer.Data;
 using WebSocketSharp;
 
-namespace AeroltChatServer
+namespace AeroltChatServer.WebSockets
 {
 	public class Connect : BaseBehaviour<Connect>
 	{

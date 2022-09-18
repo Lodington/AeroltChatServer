@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace AeroltChatServer
+namespace AeroltChatServer.Censorship
 {
     public class Censor
     {

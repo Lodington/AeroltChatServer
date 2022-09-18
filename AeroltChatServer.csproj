@@ -42,20 +42,20 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="AssetBundle.cs" />
-        <Compile Include="BaseBehaviour.cs" />
-        <Compile Include="Censor.cs" />
+        <Compile Include="Censorship\Censor.cs" />
+        <Compile Include="Censorship\ProfanityBase.cs" />
         <Compile Include="Commands.cs" />
-        <Compile Include="Connect.cs" />
-        <Compile Include="Database.cs" />
+        <Compile Include="Data\Database.cs" />
+        <Compile Include="Data\User.cs" />
         <Compile Include="Helpers.cs" />
         <Compile Include="HttpServer.cs" />
-        <Compile Include="Message.cs" />
-        <Compile Include="ProfanityBase.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="ServerProgram.cs" />
-        <Compile Include="User.cs" />
-        <Compile Include="Usernames.cs" />
+        <Compile Include="WebSockets\AssetBundle.cs" />
+        <Compile Include="WebSockets\BaseBehaviour.cs" />
+        <Compile Include="WebSockets\Connect.cs" />
+        <Compile Include="WebSockets\Message.cs" />
+        <Compile Include="WebSockets\Usernames.cs" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="MongoDB.Driver" Version="2.17.1" />

@@ -1,8 +1,9 @@
 using System;
 using System.IO;
+using AeroltChatServer.Data;
 using WebSocketSharp;
 
-namespace AeroltChatServer
+namespace AeroltChatServer.WebSockets
 {
     public class AssetBundle : BaseBehaviour<AssetBundle>
     {

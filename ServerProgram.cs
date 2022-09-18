@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using AeroltChatServer.Data;
+using AeroltChatServer.WebSockets;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 

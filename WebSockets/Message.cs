@@ -2,10 +2,11 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using AeroltChatServer.Data;
 using WebSocketSharp;
 using static AeroltChatServer.Helpers;
 
-namespace AeroltChatServer
+namespace AeroltChatServer.WebSockets
 {
 	public class Message : BaseBehaviour<Message>
 	{

@@ -1,4 +1,6 @@
-﻿namespace AeroltChatServer
+﻿using AeroltChatServer.Censorship;
+
+namespace AeroltChatServer
 {
 	public static class Helpers
 	{

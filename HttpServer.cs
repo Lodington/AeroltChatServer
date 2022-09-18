@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Web;
+using AeroltChatServer.Data;
 
 namespace AeroltChatServer
 {
@@ -26,8 +27,7 @@ namespace AeroltChatServer
             {
                 var context = _listener.EndGetContext(result);
                 var request = context.Request;
-                
-                 //debug
+
                 var guidFromUrl = request.Url.AbsolutePath.Split('/');
                 Console.WriteLine(guidFromUrl[1]);
                 if (Guid.TryParse(guidFromUrl[1], out var guid))

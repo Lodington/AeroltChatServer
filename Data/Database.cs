@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace AeroltChatServer
+namespace AeroltChatServer.Data
 {
 	public static class Database
 	{
