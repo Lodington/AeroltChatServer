@@ -12,8 +12,8 @@ namespace AeroltChatServer
 	public static class ServerProgram
 	{
 		private static readonly IPAddress Ip = IPAddress.Any;
-		private static string httpServerPort = "5000";
-		private static string WebSocketServerPort = "5001";
+		private const string HttpServerPort = "5000";
+		private const string WebSocketServerPort = "5001";
 		private static readonly WebSocketServer WebSocketServer = new WebSocketServer(WebSocketServerPort) {KeepClean = true};
 		private static readonly HttpServer HttpServer = new HttpServer();
 		
@@ -21,10 +21,10 @@ namespace AeroltChatServer
 		{
 			InitDatabase("mongoconnectionstring.txt");
 			SetupWebSocketServer();
-			HttpServer.Start("localhost",httpServerPort);
+			HttpServer.Start("localhost",HttpServerPort);
 
 			Console.WriteLine($"Server Websocket server started on {Ip} listening on port {WebSocketServerPort}...");
-			Console.WriteLine($"Server HTTP server started on {Ip} listening on port {httpServerPort}...");
+			Console.WriteLine($"Server HTTP server started on {Ip} listening on port {HttpServerPort}...");
 			Console.WriteLine("Waiting for connections...");
 
 			while (true)
@@ -46,7 +46,7 @@ namespace AeroltChatServer
 					break;
 				case "start" :
 					WebSocketServer.Start();
-					HttpServer.Start("localhost",httpServerPort);
+					HttpServer.Start("localhost",HttpServerPort);
 					break;
 			}
 		}
