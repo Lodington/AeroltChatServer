@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using AeroltChatServer.Data;
@@ -10,32 +11,56 @@ namespace AeroltChatServer
 {
 	public static class ServerProgram
 	{
+		private static readonly IPAddress Ip = IPAddress.Any;
+		private static string httpServerPort = "5000";
+		private static string WebSocketServerPort = "5001";
+		private static readonly WebSocketServer WebSocketServer = new WebSocketServer(WebSocketServerPort) {KeepClean = true};
+		private static readonly HttpServer HttpServer = new HttpServer();
+		
 		public static void Main(string[] args)
 		{
-			var ip = IPAddress.Any;
-			var httpServerPort = 5000;
-			var WebSocketServerPort = 5001;
-			
-			Database.Init(InitDatabase("mongoconnectionstring.txt"));
+			InitDatabase("mongoconnectionstring.txt");
+			SetupWebSocketServer();
+			HttpServer.Start("localhost",httpServerPort);
 
-			var server = new WebSocketServer(WebSocketServerPort) {KeepClean = true};
-			server.AddWebSocketService<Connect>("/Connect");
-			server.AddWebSocketService<Message>("/Message");
-			server.AddWebSocketService<AssetBundle>("/AssetBundle");
-			server.Log.Level = LogLevel.Info;
-			server.Start();
-			
-			new HttpServer().Start("localhost","httpServerPort");
-
-			Console.WriteLine($"Server Websocket server started on {ip} listening on port {WebSocketServerPort}...");
-			Console.WriteLine($"Server HTTP server started on {ip} listening on port {httpServerPort}...");
+			Console.WriteLine($"Server Websocket server started on {Ip} listening on port {WebSocketServerPort}...");
+			Console.WriteLine($"Server HTTP server started on {Ip} listening on port {httpServerPort}...");
 			Console.WriteLine("Waiting for connections...");
-			Console.ReadKey(true);
-			
-			server.Stop();
+
+			while (true)
+			{
+				var input = Console.ReadLine();
+				CheckCommand(input);
+			}
 		}
 
-		public static string InitDatabase(string path)
+		private static void CheckCommand(string command)
+		{
+			if(string.IsNullOrEmpty(command))
+				return;
+			switch (command.ToLowerInvariant())
+			{
+				case "stop" :
+					WebSocketServer.Stop();
+					HttpServer.Stop();
+					break;
+				case "start" :
+					WebSocketServer.Start();
+					HttpServer.Start("localhost",httpServerPort);
+					break;
+			}
+		}
+
+		private static void SetupWebSocketServer()
+		{
+			WebSocketServer.AddWebSocketService<Connect>("/Connect");
+			WebSocketServer.AddWebSocketService<Message>("/Message");
+			WebSocketServer.AddWebSocketService<AssetBundle>("/AssetBundle");
+			WebSocketServer.Log.Level = LogLevel.Info;
+			WebSocketServer.Start();
+		}
+		
+		private static void InitDatabase(string path)
 		{
 			if (!File.Exists(path))
 			{
@@ -43,9 +68,9 @@ namespace AeroltChatServer
 				var input = Console.ReadLine();
 				if (string.IsNullOrEmpty(input))
 					throw new NullReferenceException("Cant have a null or empty connection string");
-				return input;
+				Database.Init(path);
 			}
-			return File.ReadAllText(path);
+			Database.Init(path);
 		}
 		
 	}
